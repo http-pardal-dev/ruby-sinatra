@@ -12,11 +12,11 @@ used to teach a different set of HTTP concepts:
 
 The three resources are part of the **same** Ruby + Sinatra environment.
 
-At this stage the project contains the **environment preparation**: the Sinatra
-base, the default JSON configuration, the route structure for each resource, the
-**models** and the **migrations** that create the tables. There is still **no
-business logic, new validations or final route responses** — the blocks of every
-route are empty and marked with `TODO`, and the models are structure only.
+The environment is ready to be experimented with: the Sinatra base, the default
+JSON configuration, the **models**, the **migrations** that create the tables and
+the routes of each resource in `routes/`. The `Product` and `Payment` models are
+structure only — the only validations in place are the ones on `User`, used to
+demonstrate the `400 Bad Request` response.
 
 ## Getting started
 
@@ -87,7 +87,8 @@ Routes live in `routes/`, one file per resource, loaded by `app.rb`.
 | --- | --- | --- |
 | `GET` | `/` | server is up |
 
-Used to confirm the server is running. The response body is not implemented yet.
+Used to confirm the server is running. Returns a small JSON with the service
+name and its status.
 
 ### Users (`routes/users.rb`) — CRUD and fundamentals
 
@@ -178,8 +179,9 @@ The `Payment` model already includes the **state constants** of the lifecycle:
 - `Payment::STATUSES` → `["pending", "confirmed", "cancelled"]`;
 - `Payment::DEFAULT_STATUS` → `"pending"`.
 
-At this stage the models are structure only: there are no business rules,
-validations (beyond the ones already present in `User`) or state transitions.
+At this stage the models are still structure only: there are no business rules
+and no validations beyond the ones on `User`. The lifecycle rules (a payment
+only moves from "pending") live in `routes/payments.rb`.
 
 ## Environments
 

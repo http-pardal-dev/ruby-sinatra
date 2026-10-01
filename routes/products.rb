@@ -3,37 +3,72 @@
 # Routes for the Products resource.
 #
 # Educational goal: queries.
-# Planned concepts: query parameters, filters, sorting, pagination and
-# partial update.
+# Concepts: query parameters, filters, sorting, pagination and partial update.
 #
-# At this stage only the route structure is prepared: the blocks are
-# empty and the behavior will be implemented in later steps.
+# Everything sent in the query string is read from `params`.
 
 class App < Sinatra::Base
   # GET /products - lists products.
   #
-  # Same route, different concepts depending on the query parameters:
-  #   - GET /products                              -> listing
-  #   - GET /products?category=...                 -> filter by category
-  #   - GET /products?min_price=...&max_price=...  -> filter by price range
-  #   - GET /products?sort=...                     -> sorting
-  #   - GET /products?page=...&limit=...           -> pagination
+  # Query parameters:
+  #   - category=...                  -> filter by category
+  #   - min_price=...&max_price=...   -> filter by price range
+  #   - sort=name|price (prefix "-")  -> sorting ("-" means descending)
+  #   - page=...&limit=...            -> pagination
   get "/products" do
-    # TODO: interpret the query parameters and return the list (200).
+    products = Product.all
+
+    # Filters.
+    products = products.where(category: params[:category]) if params[:category]
+    products = products.where(price: params[:min_price]..) if params[:min_price]
+    products = products.where(price: ..params[:max_price]) if params[:max_price]
+
+    # Sorting: a leading "-" means descending order. Unknown columns are
+    # ignored, so the column name can never reach the query unchecked.
+    sort = params[:sort] || "id"
+    direction = sort.start_with?("-") ? :desc : :asc
+    column = sort.delete_prefix("-")
+    products = products.order(column => direction) if Product.column_names.include?(column)
+
+    # Pagination: page is 1-based and both values are at least 1.
+    page = [params.fetch(:page, 1).to_i, 1].max
+    limit = [params.fetch(:limit, 10).to_i, 1].max
+    total = products.count
+
+    data = {
+      products: products.offset((page - 1) * limit).limit(limit),
+      pagination: { page: page, limit: limit, total: total }
+    }
+    json(data)
   end
 
   # GET /products/:id - finds a product by id.
   get "/products/:id" do
-    # TODO: return the product (200) or 404 when it does not exist.
+    product = Product.find_by(id: params[:id])
+    halt 404, { error: "Product not found" }.to_json if product.nil?
+
+    json(product: product)
   end
 
   # POST /products - creates a product.
   post "/products" do
-    # TODO: create the product from the JSON body (201).
+    product = Product.new(json_body)
+    product.save!
+
+    # Location points to the resource created by this request.
+    headers "Location" => "/products/#{product.id}"
+    json({ product: product }, 201)
   end
 
   # PATCH /products/:id - partially updates a product.
+  #
+  # Only the sent attributes change, so the update does not need every field.
   patch "/products/:id" do
-    # TODO: partially update the product or 404 when it does not exist.
+    product = Product.find_by(id: params[:id])
+    halt 404, { error: "Product not found" }.to_json if product.nil?
+
+    product.update!(json_body)
+
+    json(product: product)
   end
 end

@@ -44,7 +44,7 @@ class App < Sinatra::Base
 
   # Health check route: confirms the server is up.
   get "/" do
-    # TODO: return a JSON with service information.
+    json(service: "ruby-sinatra", status: "ok")
   end
 end
 

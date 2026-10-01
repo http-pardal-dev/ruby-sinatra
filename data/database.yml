@@ -1,0 +1,11 @@
+# Database configuration per environment (SQLite).
+# Loaded by the sinatra-activerecord gem via `set :database_file`.
+# The database files live in storage/.
+
+development:
+  adapter: sqlite3
+  database: storage/development.sqlite3
+
+test:
+  adapter: sqlite3
+  database: storage/test.sqlite3

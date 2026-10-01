@@ -1,0 +1,2 @@
+# Keeps the storage folder under version control.
+# The database files (storage/*.sqlite3) are generated at runtime.

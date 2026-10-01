@@ -53,7 +53,9 @@ class App < Sinatra::Base
   # POST /products - creates a product.
   post "/products" do
     product = Product.new(json_body)
-    product.save!
+    unless product.save
+      halt 400, { error: "Validation failed", messages: product.errors.full_messages }.to_json
+    end
 
     # Location points to the resource created by this request.
     headers "Location" => "/products/#{product.id}"
@@ -67,7 +69,9 @@ class App < Sinatra::Base
     product = Product.find_by(id: params[:id])
     halt 404, { error: "Product not found" }.to_json if product.nil?
 
-    product.update!(json_body)
+    unless product.update(json_body)
+      halt 400, { error: "Validation failed", messages: product.errors.full_messages }.to_json
+    end
 
     json(product: product)
   end

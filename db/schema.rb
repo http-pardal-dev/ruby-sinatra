@@ -12,25 +12,30 @@
 
 ActiveRecord::Schema[8.1].define(version: 2026_10_01_120002) do
   create_table "payments", force: :cascade do |t|
-    t.decimal "amount", precision: 10, scale: 2
+    t.decimal "amount", precision: 10, scale: 2, null: false
     t.string "status", default: "pending", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "products", force: :cascade do |t|
-    t.string "name"
+    t.string "name", null: false
     t.text "description"
-    t.string "category"
-    t.decimal "price", precision: 10, scale: 2
+    t.string "category", null: false
+    t.decimal "price", precision: 10, scale: 2, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "name"
-    t.string "email"
+    t.string "name", null: false
+    t.string "email", null: false
+    t.string "password_digest", null: false
+    t.string "role", default: "user", null: false
+    t.boolean "active", default: true, null: false
+    t.date "birthdate"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
   end
 end

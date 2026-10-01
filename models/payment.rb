@@ -7,15 +7,14 @@ require "active_record"
 # The `payments` table is created by the migrations in db/migrate.
 #
 # Educational goal: lifecycle.
-# Planned concepts (to be implemented in later steps): states, actions,
-# transitions, headers and idempotency.
-#
-# At this stage only the model structure and the list of states are prepared;
-# there are no business rules, validations or transitions yet.
+# Concepts: states, actions, transitions, headers and idempotency.
 class Payment < ActiveRecord::Base
   # Possible states of a payment (lifecycle).
-  STATUSES = %w[pending confirmed cancelled].freeze
+  STATUSES = %w[pending paid failed cancelled].freeze
 
   # Initial state of a newly created payment.
   DEFAULT_STATUS = "pending"
+
+  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :status, inclusion: { in: STATUSES }
 end

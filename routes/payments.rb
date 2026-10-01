@@ -5,7 +5,7 @@
 # Educational goal: lifecycle.
 # Concepts: states, actions, transitions, headers and idempotency.
 #
-# A payment starts as "pending" and moves to "confirmed" or "cancelled".
+# A payment starts as "pending" and moves to "paid" or "cancelled".
 # The actions are sub-resources (`POST /payments/:id/confirm`), and the status
 # code tells the client what happened: 200 ok, 201 created, 404 not found and
 # 409 conflict (transition not allowed from the current state).
@@ -15,7 +15,9 @@ class App < Sinatra::Base
   post "/payments" do
     payment = Payment.new(json_body)
     payment.status = Payment::DEFAULT_STATUS
-    payment.save!
+    unless payment.save
+      halt 400, { error: "Validation failed", messages: payment.errors.full_messages }.to_json
+    end
 
     # Location points to the resource created by this request.
     headers "Location" => "/payments/#{payment.id}"
@@ -39,7 +41,7 @@ class App < Sinatra::Base
     json(payment: payment)
   end
 
-  # POST /payments/:id/confirm - confirms a payment.
+  # POST /payments/:id/confirm - confirms a payment (pending -> paid).
   post "/payments/:id/confirm" do
     payment = Payment.find_by(id: params[:id])
     halt 404, { error: "Payment not found" }.to_json if payment.nil?
@@ -49,7 +51,7 @@ class App < Sinatra::Base
       halt 409, { error: "A payment with status #{payment.status} cannot be confirmed" }.to_json
     end
 
-    payment.update!(status: "confirmed")
+    payment.update!(status: "paid")
     json(payment: payment)
   end
 

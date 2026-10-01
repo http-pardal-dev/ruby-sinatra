@@ -14,9 +14,9 @@ The three resources are part of the **same** Ruby + Sinatra environment.
 
 The environment is ready to be experimented with: the Sinatra base, the default
 JSON configuration, the **models**, the **migrations** that create the tables and
-the routes of each resource in `routes/`. The `Product` and `Payment` models are
-structure only — the only validations in place are the ones on `User`, used to
-demonstrate the `400 Bad Request` response.
+the routes of each resource in `routes/`. Each model carries the validations
+required by its own table, and a request that breaks them receives a
+`400 Bad Request` with the list of messages.
 
 ## Getting started
 
@@ -174,14 +174,22 @@ Each resource has an ActiveRecord model in `models/`:
 | `Product` | `products` | data queried by the Products resource |
 | `Payment` | `payments` | payment state (Payments resource) |
 
-The `Payment` model already includes the **state constants** of the lifecycle:
+`User` stores the password as a bcrypt digest (`has_secure_password`) and
+validates `name` (2-100 chars), `email` (valid and unique), `password` (minimum
+8 chars), `role` (`user` or `admin`) and `birthdate` (cannot be in the future).
+The digest is never part of a response.
 
-- `Payment::STATUSES` → `["pending", "confirmed", "cancelled"]`;
+`Product` validates `name` (2-100 chars), `description` (optional, max 1000
+chars), `category` (2-50 chars) and `price` (greater than or equal to 0).
+
+`Payment` validates `amount` (greater than 0) and includes the **state
+constants** of the lifecycle:
+
+- `Payment::STATUSES` → `["pending", "paid", "failed", "cancelled"]`;
 - `Payment::DEFAULT_STATUS` → `"pending"`.
 
-At this stage the models are still structure only: there are no business rules
-and no validations beyond the ones on `User`. The lifecycle rules (a payment
-only moves from "pending") live in `routes/payments.rb`.
+The rule about *when* a payment may change state (only from `"pending"`) lives in
+`routes/payments.rb`.
 
 ## Environments
 

@@ -22,6 +22,11 @@ class App < Sinatra::Base
     set :show_exceptions, false
     set :raise_errors, false
 
+    # Record unhandled exceptions (500) in the error stream for every
+    # environment, so they stay available for debugging. The client still
+    # receives a generic message (see errors/errors.rb).
+    set :dump_errors, true
+
     # Default content-type for every response.
     set :default_content_type, :json
   end

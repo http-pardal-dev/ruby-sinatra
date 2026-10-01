@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-# Server boot entry point.
-# Loads dependencies and environment variables, then the application.
+# Application environment.
+# Prepares the runtime (see config/boot.rb), then loads environment variables,
+# the application and the environment-specific settings.
 
-require "bundler/setup"
-require "bundler"
-Bundler.require(:default)
+require_relative "boot"
 
 require "dotenv/load"
 

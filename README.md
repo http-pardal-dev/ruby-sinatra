@@ -18,9 +18,76 @@ base, the default JSON configuration, the route structure for each resource, the
 business logic, new validations or final route responses** — the blocks of every
 route are empty and marked with `TODO`, and the models are structure only.
 
+## Getting started
+
+### Requirements
+
+- Ruby >= 3.2
+- Bundler
+
+### Installation
+
+```bash
+bundle install
+```
+
+### Configuration
+
+The only environment variable is `APP_ENV` (`development` or `test`). Copy the
+example file to `.env` and adjust it if needed:
+
+```bash
+cp .env.example .env
+```
+
+The database connection is configured in `data/database.yml` (SQLite).
+
+### Database setup
+
+Create the tables from the migrations:
+
+```bash
+bundle exec rake db:migrate
+```
+
+Prepare the test database as well:
+
+```bash
+APP_ENV=test bundle exec rake db:migrate
+```
+
+### Running the server
+
+```bash
+bundle exec puma
+```
+
+By default Puma listens on `http://localhost:9292`. To use another port, pass
+`-p`, for example `bundle exec puma -p 3000`.
+
+Confirm the server is up:
+
+```bash
+curl http://localhost:9292/
+```
+
+### Tests
+
+```bash
+bundle exec rspec
+```
+
 ## Routes
 
 Routes live in `routes/`, one file per resource, loaded by `app.rb`.
+
+### Health check
+
+| Method | Route | Concept |
+| --- | --- | --- |
+| `GET` | `/` | server is up |
+
+Used to confirm the server is running. The response body is not implemented yet.
 
 ### Users (`routes/users.rb`) — CRUD and fundamentals
 
@@ -116,6 +183,9 @@ validations (beyond the ones already present in `User`) or state transitions.
 
 ## Environments
 
+The runtime (Bundler and the gems) is prepared by `config/boot.rb`, required at
+the top of `config/environment.rb`.
+
 Each environment has a file in `config/environment/`, loaded by
 `config/environment.rb` according to `APP_ENV`:
 
@@ -139,11 +209,6 @@ bundle exec rspec
 - `spec/spec_helper.rb` sets `APP_ENV=test`, loads the application and includes
   the `Rack::Test` helpers.
 
-## Requirements
-
-- Ruby >= 3.2
-- Bundler
-
 ## Structure
 
 ```text
@@ -151,7 +216,8 @@ bundle exec rspec
 ├── app.rb                  # Sinatra application (configuration + loads the routes)
 ├── bin/                    # executable scripts
 ├── config/
-│   ├── environment.rb      # boot
+│   ├── boot.rb             # boot: Bundler and gems
+│   ├── environment.rb      # loads the application and settings
 │   └── environment/
 │       ├── development.rb  # development settings
 │       └── test.rb         # test settings

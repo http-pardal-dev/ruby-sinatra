@@ -15,6 +15,9 @@ gem "sqlite3", "~> 2.9"
 # Configuration
 gem "dotenv", "~> 3.2"
 
+# Command line interface (bin/pardal)
+gem "thor", "~> 1.5"
+
 group :development, :test do
   gem "minitest", "~> 6.0"
   gem "rack-test", "~> 2.2"

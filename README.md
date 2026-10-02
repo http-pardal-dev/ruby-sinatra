@@ -18,7 +18,106 @@ the routes of each resource in `routes/`. Each model carries the validations
 required by its own table, and a request that breaks them receives a
 `400 Bad Request` with the list of messages.
 
+## Commands
+
+The server is used through a single executable, `bin/pardal`, which offers the
+same commands on every server of the project.
+
+| Command | Responsibility |
+| --- | --- |
+| `bin/pardal setup` | Prepares the initial environment |
+| `bin/pardal reset` | Restores the initial environment |
+| `bin/pardal --help` | Lists the available commands |
+
+### `bin/pardal setup`
+
+Prepares everything the environment needs:
+
+1. checks the Ruby version required by the `Gemfile`;
+2. checks that Bundler is available and installs the dependencies;
+3. creates `.env` from `.env.example` when it does not exist yet;
+4. creates `storage/`, where the SQLite databases live;
+5. runs the migrations of the `development` and of the `test` databases;
+6. saves a copy of the whole environment as the **initial state** in `.pardal/`,
+
+```bash
+bin/pardal setup
+```
+
+> On Windows, where the file has no extension: `ruby bin/pardal setup`.
+
+The command is idempotent: running it again on an environment that is already
+ready changes nothing, so it can be used to recover a broken environment.
+
+### `bin/pardal reset`
+
+Restores the initial state saved by `bin/pardal setup`, which is what allows
+creating, changing, deleting and breaking **any file** without fear:
+
+```bash
+bin/pardal reset
+```
+
+The reset brings the environment back to that state:
+
+- files that were **changed** are restored;
+- files that were **deleted** come back;
+- files and folders that were **created** are removed.
+
+The reset replaces the current state of the environment, so the command asks
+for confirmation. Use `--force` to restore without being asked, for example in
+a script:
+
+```bash
+bin/pardal reset --force
+```
+
+The initial state is stored in `.pardal/`, which is not versioned:
+
+```text
+.pardal/
+├── created_at        # when the state was saved
+└── snapshot/         # copy of the whole environment
+    ├── .env
+    ├── app.rb
+    ├── bin/
+    ├── config/
+    ├── data/
+    ├── db/
+    ├── lib/
+    ├── models/
+    ├── routes/
+    ├── spec/
+    └── storage/
+        ├── development.sqlite3
+        └── test.sqlite3
+```
+
+The version control (`.git`) and the tools of the user (`.idea`, `.vscode`,
+`.DS_Store`, `Thumbs.db`) are never part of the initial state and are never
+removed by the reset.
+
+The help is always available, without depending on external documentation:
+
+```bash
+bin/pardal --help
+bin/pardal setup --help
+```
+
+Exit codes follow a fixed convention: `0` on success, `1` when the execution
+fails, and `2` on invalid usage.
+
 ## Getting started
+
+The shortest path is a single command, which performs every step described
+below:
+
+```bash
+bin/pardal setup
+```
+
+The steps are also described one by one, so each part of the environment can be
+understood on its own.
 
 ### Requirements
 
@@ -224,7 +323,8 @@ bundle exec rspec
 ```text
 .
 ├── app.rb                  # Sinatra application (configuration + loads the routes)
-├── bin/                    # executable scripts
+├── bin/
+│   └── pardal              # executable of the commands
 ├── config/
 │   ├── boot.rb             # boot: Bundler and gems
 │   ├── environment.rb      # loads the application and settings
@@ -240,6 +340,19 @@ bundle exec rspec
 │   └── errors.rb           # error handling (JSON)
 ├── helpers/
 │   └── json.rb             # JSON helpers (json and json_body)
+├── lib/                    # implementation of the commands (bin/pardal)
+│   ├── pardal.rb           # entry point of the commands
+│   └── pardal/
+│       ├── commands.rb     # commands of the interface
+│       ├── cli/
+│       │   ├── runner.rb   # command interface (Thor)
+│       │   └── shell.rb    # shell of the CLI (Thor)
+│       ├── commands/
+│       │   ├── base.rb     # base of the commands
+│       │   ├── reset.rb    # reset command
+│       │   └── setup.rb    # setup command
+│       └── snapshot/
+│           └── manager.rb  # initial state saved in .pardal/
 ├── models/
 │   ├── user.rb             # User model (users)
 │   ├── product.rb          # Product model (products)

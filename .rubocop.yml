@@ -31,10 +31,6 @@ Style/Documentation:
 Style/IfUnlessModifier:
   Enabled: false
 
-# `self.help` overrides Thor's method, so it keeps Thor's own signature.
-Style/OptionalBooleanParameter:
-  Enabled: false
-
 # The steps of the commands (setup, reset) read as a linear sequence: longer
 # than a short method, but easier to follow.
 Metrics/MethodLength:

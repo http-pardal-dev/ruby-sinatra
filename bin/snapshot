@@ -1,0 +1,115 @@
+#!/usr/bin/env sh
+#
+# snapshot - saves a restoration point of the environment.
+#
+# The snapshot is a copy of the whole environment - code, configuration and
+# databases - and not only of the database. That is what allows changing,
+# deleting and breaking any file without fear: `bin/reset` brings everything
+# back.
+#
+#   .pardal/
+#   |-- created_at     # when the snapshot was saved
+#   `-- snapshot/      # copy of the environment
+#
+# The first snapshot is saved by `bin/setup`, when there is none yet. This
+# command is for the moments that deserve a point of their own, and it never
+# replaces a snapshot that already exists unless `--force` says so: the
+# snapshot belongs to the user, and replacing it silently would make `reset`
+# take the environment back to a state that was already left behind.
+#
+# Exit codes: 0 success, 1 error while running, 2 invalid usage.
+
+set -e
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+# Folder of the project that keeps the snapshot.
+directory=".pardal"
+
+# What is left out of the snapshot: `.git` and `.pardal` would be copied
+# forever, and the rest are tools of the user, which do not belong to the
+# environment and must not be deleted by the reset.
+excluded=".git .pardal .idea .vscode .DS_Store Thumbs.db"
+
+usage() {
+  cat <<EOF
+Usage: bin/snapshot [options]
+
+Saves a restoration point of the environment in $directory/.
+
+Options:
+  -f, --force   Replaces the snapshot that already exists
+  -h, --help    Shows this message
+EOF
+}
+
+fail() {
+  printf 'Error: %s\n' "$1" >&2
+  exit 1
+}
+
+step() {
+  printf '\n==> %s\n' "$1"
+}
+
+is_excluded() {
+  # The name of the entry cannot be used here: shell functions share variables,
+  # and it would overwrite what the caller is about to look at.
+  for excluded_name in $excluded; do
+    if [ "$1" = "$excluded_name" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# The same names of `excluded`, as the arguments that tar expects.
+tar_excludes() {
+  for name in $excluded; do
+    printf -- '--exclude=%s ' "$name"
+  done
+}
+
+# The moment of the snapshot, in a readable way. The file keeps the ISO 8601
+# format, which is what `date` writes and what any other tool can read.
+snapshot_date() {
+  cut -c 1-16 "$directory/created_at" | tr 'T' '@' | sed 's/@/ at /'
+}
+
+force=false
+
+for argument in "$@"; do
+  case "$argument" in
+    -f | --force) force=true ;;
+    -h | --help) usage; exit 0 ;;
+    *) printf 'Error: invalid usage: %s\n' "$argument" >&2; exit 2 ;;
+  esac
+done
+
+if [ -d "$directory/snapshot" ] && [ -f "$directory/created_at" ] && [ "$force" = false ]; then
+  printf '\nThere is already a snapshot in %s/, saved at %s. Nothing was changed.\n' \
+    "$directory" "$(snapshot_date)"
+  printf 'Use --force to replace it.\n'
+
+  exit 0
+fi
+
+step "Saving the snapshot ($directory/)"
+
+# The copy is made with tar, which is what carries the folders and the
+# permissions of the environment from one system to another.
+rm -rf "$directory/snapshot"
+mkdir -p "$directory/snapshot" ||
+  fail "Could not prepare $directory/snapshot. Check the permissions of the folder."
+
+tar $(tar_excludes) -cf - . | tar -xf - -C "$directory/snapshot" ||
+  fail "Could not save the snapshot. On Windows, close the server and the editor before running the command."
+
+# Written last, because its presence is what tells that the snapshot finished
+# being saved.
+date +%Y-%m-%dT%H:%M:%S%z > "$directory/created_at" ||
+  fail "Could not save the moment of the snapshot."
+
+printf '    Whole environment saved (%s).\n' "$(snapshot_date)"

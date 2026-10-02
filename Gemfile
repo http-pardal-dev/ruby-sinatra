@@ -15,13 +15,11 @@ gem "sqlite3", "~> 2.9"
 # Configuration
 gem "dotenv", "~> 3.2"
 
-# Command line interface (bin/pardal)
-gem "thor", "~> 1.5"
-
 group :development, :test do
-  # Interactive console of the `console` command. IRB and its prompt (Reline)
-  # stopped being default gems in Ruby 4.0, and Reline needs Fiddle for the
-  # prompt on Windows, so all three have to be declared to work under Bundler.
+  # Interactive console (`bundle exec irb -r./config/environment`). IRB and its
+  # prompt (Reline) stopped being default gems in Ruby 4.0, and Reline needs
+  # Fiddle for the prompt on Windows, so all three have to be declared to work
+  # under Bundler.
   gem "fiddle", "~> 1.1"
   gem "irb", "~> 1.18"
 

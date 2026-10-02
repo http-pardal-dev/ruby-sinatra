@@ -1,0 +1,144 @@
+#!/usr/bin/env sh
+#
+# reset - brings the environment back to the snapshot kept in `.pardal/`.
+#
+# The snapshot is saved by `bin/setup` and by `bin/snapshot`; this command only
+# restores it:
+#
+#   - files that were changed are restored;
+#   - files that were deleted come back;
+#   - files and folders that were created are removed.
+#
+# Since the restore discards whatever was done after the snapshot, the command
+# asks before doing it, unless it comes with `--force`.
+#
+# Exit codes: 0 success, 1 error while running, 2 invalid usage.
+
+set -e
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+# Folder of the project that keeps the snapshot.
+directory=".pardal"
+
+# What the reset never touches: the version control and the tools of the user do
+# not belong to the environment.
+excluded=".git .pardal .idea .vscode .DS_Store Thumbs.db"
+
+usage() {
+  cat <<EOF
+Usage: bin/reset [options]
+
+Restores the environment saved in $directory/.
+
+Options:
+  -f, --force   Restores without asking for confirmation
+  -h, --help    Shows this message
+EOF
+}
+
+fail() {
+  printf 'Error: %s\n' "$1" >&2
+  exit 1
+}
+
+step() {
+  printf '\n==> %s\n' "$1"
+}
+
+is_excluded() {
+  # The name of the entry cannot be used here: shell functions share variables,
+  # and it would overwrite what the caller is about to look at.
+  for excluded_name in $excluded; do
+    if [ "$1" = "$excluded_name" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# The moment of the snapshot, in a readable way.
+snapshot_date() {
+  cut -c 1-16 "$directory/created_at" | tr 'T' '@' | sed 's/@/ at /'
+}
+
+# The reset replaces the current state of the environment, so it only happens
+# after the confirmation - unless the command comes with `--force`.
+confirm() {
+  if [ "$force" = true ]; then
+    return 0
+  fi
+
+  printf 'This discards the changes and the files created after the snapshot. Continue? [y/N] '
+
+  read -r answer || answer=""
+  case "$answer" in
+    y | Y | yes | Yes | YES) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Brings the environment back to the snapshot.
+#
+# The snapshot goes over what is there, file by file, and what the snapshot does
+# not have is removed afterwards. Nothing is renamed or moved aside: the command
+# itself runs from inside the folder being restored, and Windows does not allow
+# renaming a folder that has a file open - moving `bin` aside always fails here.
+# Copying first and removing after is also what keeps a reset that fails half way
+# from losing anything: there is no moment where a file exists only somewhere
+# else.
+restore() {
+  tar -cf - -C "$directory/snapshot" . | tar -xf - -C . ||
+    fail "Could not restore the snapshot. On Windows, close the server and the editor, then run bin/reset --force again."
+
+  remove_extras "$directory/snapshot" "."
+}
+
+# Removes what the snapshot does not have, walking the two folders at the same
+# time: $1 is what there was, $2 is what there is.
+remove_extras() {
+  for entry in "$2"/* "$2"/.[!.]* "$2"/..?*; do
+    [ -e "$entry" ] || continue
+
+    entry_name=${entry##*/}
+
+    if is_excluded "$entry_name"; then
+      continue
+    fi
+
+    if [ ! -e "$1/$entry_name" ]; then
+      rm -rf "$entry" ||
+        fail "Could not remove ($entry). On Windows, close the server and the editor, then run bin/reset --force again."
+    elif [ -d "$entry" ] && [ ! -L "$entry" ]; then
+      remove_extras "$1/$entry_name" "$entry"
+    fi
+  done
+}
+
+force=false
+
+for argument in "$@"; do
+  case "$argument" in
+    -f | --force) force=true ;;
+    -h | --help) usage; exit 0 ;;
+    *) printf 'Error: invalid usage: %s\n' "$argument" >&2; exit 2 ;;
+  esac
+done
+
+[ -d "$directory/snapshot" ] && [ -f "$directory/created_at" ] ||
+  fail "No snapshot in $directory/. Run bin/setup to prepare the environment and save the first snapshot."
+
+if ! confirm; then
+  printf '\nNothing was changed. Use --force to restore without being asked.\n'
+
+  exit 0
+fi
+
+step "Restoring the snapshot ($directory/)"
+
+restore
+
+printf '\nEnvironment restored to the snapshot of %s.\n' "$(snapshot_date)"
+printf 'Changes and files created after that were discarded.\n'

@@ -1,2 +1,6 @@
 # Windows batch files only work with CRLF line endings.
 *.cmd text eol=crlf
+
+# The commands are shell scripts: with autocrlf on, Windows would check them
+# out with CRLF, and a shebang followed by \r does not run.
+bin/* text eol=lf

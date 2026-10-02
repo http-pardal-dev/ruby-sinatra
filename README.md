@@ -20,41 +20,48 @@ required by its own table, and a request that breaks them receives a
 
 ## Commands
 
-The server is used through a single executable, `bin/pardal`, which offers the
-same commands on every server of the project.
+The server is used through four scripts in `bin/`: plain POSIX shell, with no
+language runtime behind them, so they start instantly and depend only on what
+the environment already needs.
 
 | Command | Responsibility |
 | --- | --- |
-| `bin/pardal setup` | Prepares the initial environment |
-| `bin/pardal start` | Runs the application |
-| `bin/pardal test` | Runs the tests |
-| `bin/pardal console` | Opens an interactive console |
-| `bin/pardal install` | Installs the dependencies of the project |
-| `bin/pardal snapshot` | Saves a restoration point |
-| `bin/pardal reset` | Restores the snapshot |
-| `bin/pardal --help` | Lists the available commands |
+| `bin/setup` | Prepares the initial environment |
+| `bin/start` | Runs the application |
+| `bin/snapshot` | Saves a restoration point |
+| `bin/reset` | Restores the snapshot |
 
-The code is checked by a task of the language, not by a command: `bundle exec
-rake lint` runs RuboCop (see `.rubocop.yml`).
-
-On macOS and Linux, the executable is called directly:
+The scripts need a POSIX shell. On macOS and Linux they run directly:
 
 ```bash
-bin/pardal setup
+bin/setup
 ```
 
-On Windows, `bin/pardal` is a Ruby file without an extension and cannot be
-called directly, so the wrapper `bin\pardal.cmd` is used instead. It runs the
-same script and keeps the exit code:
+On Windows they run from Git Bash (or any other POSIX shell), the same way:
 
-```bat
-bin\pardal.cmd setup
+```bash
+sh bin/setup
 ```
+
+Each script explains itself with `--help`, without depending on external
+documentation:
+
+```bash
+bin/setup --help
+bin/reset --help
+```
+
+Exit codes follow a fixed convention: `0` on success, `1` when the execution
+fails, and `2` on invalid usage.
 
 The dependencies are installed automatically when they are missing, so a fresh
 clone runs `setup` without asking for a `bundle install` first.
 
-### `bin/pardal setup`
+The test suite and the linter stay tasks of the language, not commands of
+`bin/`: `bundle exec rspec` runs the tests and `bundle exec rake lint` runs
+RuboCop (see `.rubocop.yml`).
+
+### `bin/setup`
 
 Prepares everything the environment needs:
 
@@ -66,7 +73,7 @@ Prepares everything the environment needs:
 6. saves the first **snapshot**, when there is none yet.
 
 ```bash
-bin/pardal setup
+bin/setup
 ```
 
 The command is idempotent: running it again on an environment that is already
@@ -80,50 +87,33 @@ The step that installs the dependencies can be controlled with two flags:
 | `--skip-install` | Does not check nor install the dependencies |
 
 ```bash
-bin/pardal setup --install
-bin/pardal setup --skip-install
+bin/setup --install
+bin/setup --skip-install
 ```
 
-### `bin/pardal install`
+The installation itself lives only here: Bundler does it (`bundle install`),
+and `bin/start` refuses to run when the dependencies are missing, pointing
+back to `bin/setup`.
 
-Installs the dependencies declared in the `Gemfile`:
-
-```bash
-bin/pardal install
-```
-
-This is where the installation lives. `setup` calls this same command when the
-dependencies are missing, so there is only one place that knows how to install
-them.
-
-### `bin/pardal start`
+### `bin/start`
 
 Runs the application with Puma, in the foreground:
 
 ```bash
-bin/pardal start
+bin/start
 ```
 
-The server listens on `http://localhost:9292` and Ctrl+C stops it. It is the
-same as `bundle exec puma`, with the address ready for the experiment.
+The server listens on `http://localhost:9292` and Ctrl+C stops it. The
+dependencies are checked first, so a clone that still needs them gets a message
+pointing to `bin/setup` instead of an error from Bundler.
 
-### `bin/pardal test`
+### Console (IRB)
 
-Runs the whole test suite (RSpec) in the `test` environment:
-
-```bash
-bin/pardal test
-```
-
-The end-to-end examples (`spec/e2e/`) start a real server and send their
-requests with `curl`.
-
-### `bin/pardal console`
-
-Opens an interactive console (IRB) with the application loaded:
+The interactive console with the application loaded is IRB itself, requiring
+the environment:
 
 ```bash
-bin/pardal console
+bundle exec irb -r./config/environment
 ```
 
 The application, the models and the database connection of the current
@@ -134,13 +124,13 @@ User.count  #=> number of users in the database
 App         #=> the Sinatra application
 ```
 
-### `bin/pardal snapshot`
+### `bin/snapshot`
 
 Saves a copy of the whole environment in `.pardal/`, the point `reset` brings
 it back to:
 
 ```bash
-bin/pardal snapshot
+bin/snapshot
 ```
 
 A snapshot that already exists is **not** replaced: it belongs to the user, and
@@ -148,16 +138,16 @@ replacing it silently would make `reset` take the environment back to a state
 that was already left behind. Use `--force` to replace it on purpose:
 
 ```bash
-bin/pardal snapshot --force
+bin/snapshot --force
 ```
 
-### `bin/pardal reset`
+### `bin/reset`
 
 Restores the snapshot kept in `.pardal/`, which is what allows creating,
 changing, deleting and breaking **any file** without fear:
 
 ```bash
-bin/pardal reset
+bin/reset
 ```
 
 The reset brings the environment back to the snapshot:
@@ -171,7 +161,7 @@ for confirmation. Use `--force` to restore without being asked, for example in
 a script:
 
 ```bash
-bin/pardal reset --force
+bin/reset --force
 ```
 
 ### How the snapshot flows
@@ -195,7 +185,6 @@ it is stored in `.pardal/`, which is not versioned:
     ├── config/
     ├── data/
     ├── db/
-    ├── lib/
     ├── models/
     ├── routes/
     ├── spec/
@@ -208,23 +197,13 @@ The version control (`.git`) and the tools of the user (`.idea`, `.vscode`,
 `.DS_Store`, `Thumbs.db`) are never part of the snapshot and are never
 removed by the reset.
 
-The help is always available, without depending on external documentation:
-
-```bash
-bin/pardal --help
-bin/pardal setup --help
-```
-
-Exit codes follow a fixed convention: `0` on success, `1` when the execution
-fails, and `2` on invalid usage.
-
 ## Getting started
 
 The shortest path is a single command, which performs every step described
 below:
 
 ```bash
-bin/pardal setup
+bin/setup
 ```
 
 The steps are also described one by one, so each part of the environment can be
@@ -284,10 +263,10 @@ curl http://localhost:9292/
 ### Tests
 
 ```bash
-bin/pardal test
+bundle exec rspec
 ```
 
-The same as `bundle exec rspec`, in the `test` environment.
+The whole suite runs in the `test` environment.
 
 ## Routes
 
@@ -408,13 +387,11 @@ The rule about *when* a payment may change state (only from `"pending"`) lives i
 The runtime (Bundler and the gems) is prepared by `config/boot.rb`, required at
 the top of `config/environment.rb`.
 
-The commands do not use `config/boot.rb`: they need only Thor, so
-`lib/pardal/launcher.rb` activates the bundle (`bundler/setup`, which does not
-load the gems) instead of loading Sinatra, ActiveRecord and SQLite. Loading what
-no command uses would make every command much slower to start.
-
-The launcher also installs the dependencies when they are missing, which is how
-the commands work on a fresh clone without a manual `bundle install`.
+The commands in `bin/` do not use `config/boot.rb`: they are shell scripts and
+do not load Ruby at all, calling it only when a step really needs the language
+(`bundle check`, `bundle install`, `rake db:migrate`, `puma`). Starting the
+server therefore costs only what the server itself costs, and a fresh clone
+works because `bin/setup` installs the dependencies when they are missing.
 
 Each environment has a file in `config/environment/`, loaded by
 `config/environment.rb` according to `APP_ENV`:
@@ -432,11 +409,11 @@ The database used also depends on `APP_ENV`:
 The tests live in `spec/` and run in the `test` environment:
 
 ```bash
-bin/pardal test
+bundle exec rspec
 ```
 
-`bin/pardal test` runs the same suite as `bundle exec rspec`, which is the
-command to use when the output needs to be tuned (a file, an example, ...).
+The options of RSpec itself are available when the output needs to be tuned (a
+file, an example, ...).
 
 - `.rspec` configures loading the `spec_helper` and the output format;
 - `spec/spec_helper.rb` sets `APP_ENV=test`, loads the application and includes
@@ -446,7 +423,7 @@ command to use when the output needs to be tuned (a file, an example, ...).
 
 ## Lint (RuboCop)
 
-The code is checked by a task of the language, not by a command of the CLI,
+The code is checked by a task of the language, not by a command of `bin/`,
 because the checker is specific to the language:
 
 ```bash
@@ -462,8 +439,10 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 .
 ├── app.rb                  # Sinatra application (configuration + loads the routes)
 ├── bin/
-│   ├── pardal              # executable of the commands
-│   └── pardal.cmd          # same executable, for Windows
+│   ├── setup               # prepares the environment
+│   ├── start               # starts the server
+│   ├── snapshot            # saves a restoration point
+│   └── reset               # restores the snapshot
 ├── config/
 │   ├── boot.rb             # boot of the application: Bundler and gems
 │   ├── environment.rb      # loads the application and settings
@@ -479,25 +458,6 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 │   └── errors.rb           # error handling (JSON)
 ├── helpers/
 │   └── json.rb             # JSON helpers (json and json_body)
-├── lib/                    # implementation of the commands (bin/pardal)
-│   ├── pardal.rb           # entry point of the commands
-│   └── pardal/
-│       ├── commands.rb     # commands of the interface
-│       ├── launcher.rb     # prepares the runtime of the commands
-│       ├── cli/
-│       │   ├── runner.rb   # command interface (Thor)
-│       │   └── shell.rb    # shell of the CLI (Thor)
-│       ├── commands/
-│       │   ├── base.rb     # base of the commands
-│       │   ├── console.rb  # console command
-│       │   ├── install.rb  # install command
-│       │   ├── reset.rb    # reset command
-│       │   ├── setup.rb    # setup command
-│       │   ├── snapshot.rb # snapshot command
-│       │   ├── start.rb    # start command
-│       │   └── test.rb     # test command
-│       └── snapshot/
-│           └── manager.rb  # snapshot kept in .pardal/
 ├── models/
 │   ├── user.rb             # User model (users)
 │   ├── product.rb          # Product model (products)

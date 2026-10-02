@@ -73,11 +73,18 @@ module Pardal
         run_command(Commands::Install)
       end
 
-      desc "reset", "Restores the initial environment"
+      desc "reset", "Restores the snapshot of the environment"
       method_option :force, type: :boolean, default: false, aliases: "-f",
                         desc: "Restores without asking for confirmation"
       def reset
         run_command(Commands::Reset, shell: shell, force: options[:force])
+      end
+
+      desc "snapshot", "Saves a restoration point of the environment"
+      method_option :force, type: :boolean, default: false, aliases: "-f",
+                        desc: "Replaces the snapshot that already exists"
+      def snapshot
+        run_command(Commands::Snapshot, force: options[:force])
       end
 
       no_commands do

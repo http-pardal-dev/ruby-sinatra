@@ -2,12 +2,11 @@
 
 module Pardal
   module Commands
-    # `reset` - brings the environment back to the initial state saved in
-    # `.pardal/`.
+    # `reset` - brings the environment back to the snapshot kept in `.pardal/`.
     #
-    # The initial state is saved by `setup`. Since the restore discards what is
-    # in the environment, the command asks before doing it, unless it is called
-    # with `--force`.
+    # The snapshot is saved by `setup` and by `snapshot`. This command only
+    # restores it. Since the restore discards what is in the environment, it
+    # asks before doing it, unless it is called with `--force`.
     class Reset < Base
       def initialize(root:, shell:, force: false)
         super(root: root)
@@ -17,8 +16,7 @@ module Pardal
 
       # Restores the environment and returns the exit status of the command.
       def call
-        snapshot = Snapshot::Manager.new(root: root)
-        raise Error, missing_snapshot_message unless snapshot.exist?
+        raise Error, missing_snapshot_message unless snapshot_manager.exist?
 
         unless confirm
           puts
@@ -27,11 +25,11 @@ module Pardal
           return 0
         end
 
-        announce("Restoring the initial state (#{Snapshot::Manager::DIRECTORY}/)")
-        snapshot.restore
+        announce("Restoring the snapshot (#{snapshot_directory}/)")
+        snapshot_manager.restore
 
         puts
-        puts "Environment restored to the state of #{snapshot.created_at}."
+        puts "Environment restored to the snapshot of #{snapshot_manager.created_at}."
         puts "Changes and files created after that were discarded."
 
         0 # exit status of the command
@@ -41,19 +39,18 @@ module Pardal
 
       attr_reader :shell
 
-      # The restore discards whatever was done after the initial state, so it
-      # only happens after the confirmation - unless the command comes with
-      # --force.
+      # The restore discards whatever was done after the snapshot, so it only
+      # happens after the confirmation - unless the command comes with --force.
       def confirm
         return true if @force
 
         shell.yes?("This discards the changes and the files created after the " \
-                   "initial state. Continue? [y/N]")
+                   "snapshot. Continue? [y/N]")
       end
 
       def missing_snapshot_message
-        "No initial state in #{Snapshot::Manager::DIRECTORY}/. " \
-        "Run bin/pardal setup to prepare the environment and save the initial state."
+        "No snapshot in #{snapshot_directory}/. " \
+        "Run bin/pardal setup to prepare the environment and save the first snapshot."
       end
     end
   end

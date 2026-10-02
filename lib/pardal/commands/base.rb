@@ -19,6 +19,18 @@ module Pardal
         puts "\n==> #{message}"
       end
 
+      # The manager that saves and restores the snapshot. The name is fully
+      # qualified because the `snapshot` command has the same name as the
+      # namespace of the manager.
+      def snapshot_manager
+        @snapshot_manager ||= Pardal::Snapshot::Manager.new(root: root)
+      end
+
+      # Folder that keeps the snapshot (".pardal").
+      def snapshot_directory
+        Pardal::Snapshot::Manager::DIRECTORY
+      end
+
       # Bundler called by Ruby itself (`ruby -S bundle`), which behaves the
       # same on Windows, macOS and Linux.
       def bundle_command(*args)

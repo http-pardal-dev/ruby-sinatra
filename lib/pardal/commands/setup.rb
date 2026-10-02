@@ -4,7 +4,7 @@ require "fileutils"
 
 module Pardal
   module Commands
-    # `setup` - prepares the initial environment and saves the initial state.
+    # `setup` - prepares the initial environment and saves the first snapshot.
     #
     # The steps are idempotent: running the command twice cannot break an
     # environment that is already ready.
@@ -14,7 +14,7 @@ module Pardal
     #   3. creates `.env` from `.env.example`;
     #   4. creates `storage/`, where the SQLite databases live;
     #   5. runs the migrations of the `development` and `test` databases;
-    #   6. saves the whole environment in `.pardal/`, used by `reset`.
+    #   6. saves the first snapshot in `.pardal/`, if there is none yet.
     class Setup < Base
       # Environments of the project (config/environment.rb and data/database.yml).
       ENVIRONMENTS = %w[development test].freeze
@@ -50,10 +50,10 @@ module Pardal
           migrate(env)
         end
 
-        announce("Saving the initial state (#{Snapshot::Manager::DIRECTORY}/)")
-        save_snapshot
+        save_initial_state
 
-        print_next_steps
+        puts
+        puts "Environment ready."
 
         0 # exit status of the command
       end
@@ -128,12 +128,21 @@ module Pardal
                      "Review the migrations in db/migrate."
       end
 
-      # The initial state is saved at the end, when the environment is already
-      # ready - that is the state `reset` restores.
-      def save_snapshot
-        Snapshot::Manager.new(root: root).save
+      # The first snapshot is saved at the end, when the environment is already
+      # ready. It is saved only when there is none: from then on it belongs to
+      # the user, who can replace it with `snapshot --force`.
+      def save_initial_state
+        if snapshot_manager.exist?
+          announce("Keeping the snapshot (#{snapshot_directory}/)")
+          puts "    The snapshot of #{snapshot_manager.created_at} was kept."
 
-        puts "    Whole environment saved in .pardal/ for the reset command."
+          return
+        end
+
+        announce("Saving the first snapshot (#{snapshot_directory}/)")
+        snapshot_manager.save
+
+        puts "    Whole environment saved for the reset command."
       end
 
       # --- helpers -----------------------------------------------------------
@@ -145,17 +154,6 @@ module Pardal
         return DEFAULT_RUBY_REQUIREMENT unless gemfile.file?
 
         gemfile.read[/^\s*ruby\s+"([^"]+)"/, 1] || DEFAULT_RUBY_REQUIREMENT
-      end
-
-      def print_next_steps
-        puts
-        puts "Environment ready."
-        puts
-        puts "Next steps:"
-        puts "  bin/pardal reset           # restores the initial environment"
-        puts "  bundle exec puma           # starts the application at http://localhost:9292"
-        puts "  bundle exec rspec          # runs the tests"
-        puts "  curl http://localhost:9292/ # checks that the server responds"
       end
     end
   end

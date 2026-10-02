@@ -27,7 +27,8 @@ same commands on every server of the project.
 | --- | --- |
 | `bin/pardal setup` | Prepares the initial environment |
 | `bin/pardal install` | Installs the dependencies of the project |
-| `bin/pardal reset` | Restores the initial environment |
+| `bin/pardal snapshot` | Saves a restoration point |
+| `bin/pardal reset` | Restores the snapshot |
 | `bin/pardal --help` | Lists the available commands |
 
 On macOS and Linux, the executable is called directly:
@@ -56,7 +57,7 @@ Prepares everything the environment needs:
 3. creates `.env` from `.env.example` when it does not exist yet;
 4. creates `storage/`, where the SQLite databases live;
 5. runs the migrations of the `development` and of the `test` databases;
-6. saves a copy of the whole environment as the **initial state** in `.pardal/`,
+6. saves the first **snapshot**, when there is none yet.
 
 ```bash
 bin/pardal setup
@@ -89,16 +90,33 @@ This is where the installation lives. `setup` calls this same command when the
 dependencies are missing, so there is only one place that knows how to install
 them.
 
+### `bin/pardal snapshot`
+
+Saves a copy of the whole environment in `.pardal/`, the point `reset` brings
+it back to:
+
+```bash
+bin/pardal snapshot
+```
+
+A snapshot that already exists is **not** replaced: it belongs to the user, and
+replacing it silently would make `reset` take the environment back to a state
+that was already left behind. Use `--force` to replace it on purpose:
+
+```bash
+bin/pardal snapshot --force
+```
+
 ### `bin/pardal reset`
 
-Restores the initial state saved by `bin/pardal setup`, which is what allows
-creating, changing, deleting and breaking **any file** without fear:
+Restores the snapshot kept in `.pardal/`, which is what allows creating,
+changing, deleting and breaking **any file** without fear:
 
 ```bash
 bin/pardal reset
 ```
 
-The reset brings the environment back to that state:
+The reset brings the environment back to the snapshot:
 
 - files that were **changed** are restored;
 - files that were **deleted** come back;
@@ -112,11 +130,20 @@ a script:
 bin/pardal reset --force
 ```
 
-The initial state is stored in `.pardal/`, which is not versioned:
+### How the snapshot flows
+
+```text
+setup     saves the first snapshot, only when there is none
+snapshot  saves a new one, replacing it only with --force
+reset     restores the snapshot that exists
+```
+
+The snapshot is a copy of the whole environment, not only of the database, and
+it is stored in `.pardal/`, which is not versioned:
 
 ```text
 .pardal/
-├── created_at        # when the state was saved
+├── created_at        # when the snapshot was saved
 └── snapshot/         # copy of the whole environment
     ├── .env
     ├── app.rb
@@ -134,7 +161,7 @@ The initial state is stored in `.pardal/`, which is not versioned:
 ```
 
 The version control (`.git`) and the tools of the user (`.idea`, `.vscode`,
-`.DS_Store`, `Thumbs.db`) are never part of the initial state and are never
+`.DS_Store`, `Thumbs.db`) are never part of the snapshot and are never
 removed by the reset.
 
 The help is always available, without depending on external documentation:
@@ -401,9 +428,10 @@ bundle exec rspec
 │       │   ├── base.rb     # base of the commands
 │       │   ├── install.rb  # install command
 │       │   ├── reset.rb    # reset command
-│       │   └── setup.rb    # setup command
+│       │   ├── setup.rb    # setup command
+│       │   └── snapshot.rb # snapshot command
 │       └── snapshot/
-│           └── manager.rb  # initial state saved in .pardal/
+│           └── manager.rb  # snapshot kept in .pardal/
 ├── models/
 │   ├── user.rb             # User model (users)
 │   ├── product.rb          # Product model (products)

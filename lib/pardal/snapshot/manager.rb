@@ -5,7 +5,7 @@ require "pathname"
 require "time"
 
 module Pardal
-  # Initial state of the environment, kept in `.pardal/`.
+  # Snapshots of the environment, kept in `.pardal/`.
   module Snapshot
     # Saves and restores the copy of the environment.
     #
@@ -14,9 +14,12 @@ module Pardal
     # deleting and breaking any file without fear: `reset` brings everything
     # back.
     #
+    # `setup` saves the first snapshot when there is none, `snapshot` saves a
+    # new one on demand, and `reset` restores the snapshot that exists.
+    #
     # ```text
     # .pardal/
-    # |-- created_at        # when the initial state was saved
+    # |-- created_at        # when the snapshot was saved
     # `-- snapshot/         # copy of the environment
     #     |-- .env
     #     |-- app.rb
@@ -31,7 +34,7 @@ module Pardal
     #     `-- storage/
     # ```
     class Manager
-      # Folder of the project that keeps the initial state.
+      # Folder of the project that keeps the snapshot.
       DIRECTORY = ".pardal"
 
       # Folder inside DIRECTORY that keeps the copy of the environment. What is
@@ -39,21 +42,21 @@ module Pardal
       # - that is why it stays outside `path`, so it is not copied back on reset.
       SNAPSHOT = "snapshot"
 
-      # What is left out of the initial state:
+      # What is left out of the snapshot:
       #
       # - `.git` and `.pardal` would be copied forever;
       # - the rest are user tools (editor and operating system), which do not
       #   belong to the environment and must not be deleted by the reset.
       EXCLUDED = %w[.git .pardal .idea .vscode .DS_Store Thumbs.db].freeze
 
-      # File that records when the initial state was saved.
+      # File that records when the snapshot was saved.
       CREATED_AT = "created_at"
 
       def initialize(root:)
         @root = Pathname(root)
       end
 
-      # Folder that keeps the initial state and its data.
+      # Folder that keeps the snapshot and its data.
       def directory
         root.join(DIRECTORY)
       end
@@ -63,7 +66,7 @@ module Pardal
         directory.join(SNAPSHOT)
       end
 
-      # Date when the initial state was saved, for the user (nil when there is
+      # Date when the snapshot was saved, for the user (nil when there is
       # none). The file keeps the ISO 8601 format; the message shows the date in
       # a readable way.
       def created_at
@@ -73,13 +76,13 @@ module Pardal
         Time.parse(file.read.strip).strftime("%Y-%m-%d at %H:%M")
       end
 
-      # True when an initial state is saved. The `created_at` file is written
+      # True when a snapshot is saved. The `created_at` file is written
       # last, so its presence means the snapshot finished being saved.
       def exist?
         path.directory? && directory.join(CREATED_AT).file?
       end
 
-      # Saves the current environment as the initial state.
+      # Saves the current environment as the snapshot.
       def save
         FileUtils.rm_rf(path)
         copy_tree(root, path)
@@ -88,7 +91,7 @@ module Pardal
         self
       end
 
-      # Brings the environment back to the initial state: restores what was
+      # Brings the environment back to the snapshot: restores what was
       # changed or deleted and removes what was created afterwards.
       def restore
         remove_extra_files(root, path)
@@ -129,9 +132,9 @@ module Pardal
         FileUtils.mkdir_p(destination)
       end
 
-      # Removes what was created after the initial state. Without this step, a
+      # Removes what was created after the snapshot. Without this step, a
       # file created while experimenting would still exist after the reset, and
-      # the environment would not go back to the initial state.
+      # the environment would not go back to it.
       def remove_extra_files(directory, snapshot)
         Dir.children(directory).each do |entry|
           next if EXCLUDED.include?(entry)
@@ -150,7 +153,7 @@ module Pardal
       end
 
       def copy_error_message(error)
-        "Could not apply the initial state (#{error.class}). " \
+        "Could not apply the snapshot (#{error.class}). " \
         "On Windows, close the server and the editor before running the command."
       end
     end

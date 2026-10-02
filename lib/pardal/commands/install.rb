@@ -14,7 +14,6 @@ module Pardal
         raise Error, "`bundle install` failed. Review the Gemfile and try again." unless install
 
         puts "    Dependencies installed."
-        puts "    Next step: bin/pardal setup prepares the environment."
 
         0 # exit status of the command
       end

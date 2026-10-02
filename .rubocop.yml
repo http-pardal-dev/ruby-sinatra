@@ -36,18 +36,6 @@ Style/IfUnlessModifier:
 Metrics/MethodLength:
   Max: 15
 
-# The examples of the test suite are the units of the report, so a block that
-# describes a whole resource is longer than a regular method.
-Metrics/BlockLength:
-  Exclude:
-    - "spec/**/*"
-
-# The E2E examples keep the whole `curl` command on a single line on purpose
-# (see spec/e2e).
-Layout/LineLength:
-  Exclude:
-    - "spec/e2e/**/*"
-
 # A Gemfile has no frozen string literal comment, like every Gemfile.
 Style/FrozenStringLiteralComment:
   Exclude:

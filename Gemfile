@@ -23,10 +23,7 @@ group :development, :test do
   gem "fiddle", "~> 1.1"
   gem "irb", "~> 1.18"
 
-  gem "minitest", "~> 6.0"
-  gem "rack-test", "~> 2.2"
   gem "rake", "~> 13.0"
-  gem "rspec", "~> 3.13"
 
   # Code checker of the `lint` task (see Rakefile and .rubocop.yml).
   gem "rubocop", "~> 1.91", require: false

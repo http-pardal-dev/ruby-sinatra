@@ -14,7 +14,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
 # Every command of the server, in the order of the list below.
-commands="setup start install snapshot reset help"
+commands="setup start install snapshot reset test help"
 
 usage() {
   cat <<EOF
@@ -29,6 +29,7 @@ Commands:
   install    Installs the dependencies of the project
   snapshot   Saves a restoration point of the environment
   reset      Restores the snapshot of the environment
+  test       Runs the end-to-end tests
   help       Shows this list
 
 Every command also explains itself with --help. Exit codes: 0 success,

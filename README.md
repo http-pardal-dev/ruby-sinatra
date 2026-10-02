@@ -31,6 +31,7 @@ the environment already needs.
 | `bin/install` | Installs the dependencies of the project |
 | `bin/snapshot` | Saves a restoration point |
 | `bin/reset` | Restores the snapshot |
+| `bin/test` | Runs the end-to-end tests |
 | `bin/help` | Shows the commands and how to use them |
 
 The scripts need a POSIX shell. On macOS and Linux they run directly:
@@ -67,9 +68,9 @@ fails, and `2` on invalid usage.
 The dependencies are installed automatically when they are missing, so a fresh
 clone runs `setup` without asking for a `bundle install` first.
 
-The test suite and the linter stay tasks of the language, not commands of
-`bin/`: `bundle exec rspec` runs the tests and `bundle exec rake lint` runs
-RuboCop (see `.rubocop.yml`).
+The tests are shell scripts, so they have a command of their own
+(`bin/test`), while the linter stays a task of the language:
+`bundle exec rake lint` runs RuboCop (see `.rubocop.yml`).
 
 ### `bin/setup`
 
@@ -223,7 +224,7 @@ it is stored in `.snapshot/`, which is not versioned:
 ├── db/
 ├── models/
 ├── routes/
-├── spec/
+├── test/
 └── storage/
     ├── development.sqlite3
     └── test.sqlite3
@@ -299,7 +300,7 @@ curl http://localhost:9292/
 ### Tests
 
 ```bash
-bundle exec rspec
+bin/test
 ```
 
 The whole suite runs in the `test` environment.
@@ -440,22 +441,27 @@ The database used also depends on `APP_ENV`:
 - `development` → `storage/development.sqlite3`;
 - `test` → `storage/test.sqlite3`.
 
-## Tests (RSpec)
+## Tests
 
-The tests live in `spec/` and run in the `test` environment:
+The tests are shell scripts that live in `test/` and run in the `test`
+environment:
 
 ```bash
-bundle exec rspec
+bin/test
 ```
 
-The options of RSpec itself are available when the output needs to be tuned (a
-file, an example, ...).
+The command starts a real server, waits until it answers, runs the examples
+and stops the server at the end. Port 9292 must be free, so `bin/start` has to
+be stopped first.
 
-- `.rspec` configures loading the `spec_helper` and the output format;
-- `spec/spec_helper.rb` sets `APP_ENV=test`, loads the application and includes
-  the `Rack::Test` helpers;
-- `spec/e2e/` holds the end-to-end examples: they start a real server
-  (`spec/support/e2e_server.rb`) and send their requests with `curl`.
+- `test/e2e/` holds the end-to-end examples (users, products and payments):
+  each one sends its own requests with `curl` to the server, with the whole
+  command written out;
+- `test/support.sh` holds the assertions shared by the examples: every example
+  is reported as `ok` or `FAIL`, and each file finishes with the total of
+  `N examples, M failures`;
+- the data of the suite lives in `storage/test.sqlite3`, separate from the
+  development data.
 
 ## Lint (RuboCop)
 
@@ -480,6 +486,7 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 │   ├── install             # installs the dependencies
 │   ├── snapshot            # saves a restoration point
 │   ├── reset               # restores the snapshot
+│   ├── test                # runs the end-to-end tests
 │   └── help                # shows the commands
 ├── config/
 │   ├── boot.rb             # boot of the application: Bundler and gems
@@ -504,15 +511,13 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 │   ├── users.rb            # Users routes (CRUD and fundamentals)
 │   ├── products.rb         # Products routes (queries)
 │   └── payments.rb         # Payments routes (lifecycle)
-├── spec/
+├── test/
 │   ├── e2e/                # end-to-end examples (curl against the server)
-│   ├── integration/        # request examples (Rack::Test)
-│   ├── unit/               # model examples
-│   ├── support/
-│   │   └── e2e_server.rb   # starts/stops the server used by spec/e2e
-│   └── spec_helper.rb      # RSpec configuration
+│   │   ├── users.sh        # users (CRUD and fundamentals)
+│   │   ├── products.sh     # products (queries)
+│   │   └── payments.sh     # payments (lifecycle)
+│   └── support.sh          # assertions shared by the examples
 ├── storage/                # database files (generated)
-├── .rspec
 ├── .rubocop.yml            # rules of the lint task
 ├── config.ru
 ├── Gemfile

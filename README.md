@@ -26,10 +26,16 @@ same commands on every server of the project.
 | Command | Responsibility |
 | --- | --- |
 | `bin/pardal setup` | Prepares the initial environment |
+| `bin/pardal start` | Runs the application |
+| `bin/pardal test` | Runs the tests |
+| `bin/pardal console` | Opens an interactive console |
 | `bin/pardal install` | Installs the dependencies of the project |
 | `bin/pardal snapshot` | Saves a restoration point |
 | `bin/pardal reset` | Restores the snapshot |
 | `bin/pardal --help` | Lists the available commands |
+
+The code is checked by a task of the language, not by a command: `bundle exec
+rake lint` runs RuboCop (see `.rubocop.yml`).
 
 On macOS and Linux, the executable is called directly:
 
@@ -89,6 +95,44 @@ bin/pardal install
 This is where the installation lives. `setup` calls this same command when the
 dependencies are missing, so there is only one place that knows how to install
 them.
+
+### `bin/pardal start`
+
+Runs the application with Puma, in the foreground:
+
+```bash
+bin/pardal start
+```
+
+The server listens on `http://localhost:9292` and Ctrl+C stops it. It is the
+same as `bundle exec puma`, with the address ready for the experiment.
+
+### `bin/pardal test`
+
+Runs the whole test suite (RSpec) in the `test` environment:
+
+```bash
+bin/pardal test
+```
+
+The end-to-end examples (`spec/e2e/`) start a real server and send their
+requests with `curl`.
+
+### `bin/pardal console`
+
+Opens an interactive console (IRB) with the application loaded:
+
+```bash
+bin/pardal console
+```
+
+The application, the models and the database connection of the current
+environment are ready, which is what the experiment needs:
+
+```ruby
+User.count  #=> number of users in the database
+App         #=> the Sinatra application
+```
 
 ### `bin/pardal snapshot`
 
@@ -240,8 +284,10 @@ curl http://localhost:9292/
 ### Tests
 
 ```bash
-bundle exec rspec
+bin/pardal test
 ```
+
+The same as `bundle exec rspec`, in the `test` environment.
 
 ## Routes
 
@@ -386,12 +432,29 @@ The database used also depends on `APP_ENV`:
 The tests live in `spec/` and run in the `test` environment:
 
 ```bash
-bundle exec rspec
+bin/pardal test
 ```
+
+`bin/pardal test` runs the same suite as `bundle exec rspec`, which is the
+command to use when the output needs to be tuned (a file, an example, ...).
 
 - `.rspec` configures loading the `spec_helper` and the output format;
 - `spec/spec_helper.rb` sets `APP_ENV=test`, loads the application and includes
-  the `Rack::Test` helpers.
+  the `Rack::Test` helpers;
+- `spec/e2e/` holds the end-to-end examples: they start a real server
+  (`spec/support/e2e_server.rb`) and send their requests with `curl`.
+
+## Lint (RuboCop)
+
+The code is checked by a task of the language, not by a command of the CLI,
+because the checker is specific to the language:
+
+```bash
+bundle exec rake lint
+```
+
+The rules live in `.rubocop.yml` and describe the style the project already
+uses. `rake lint:autocorrect` applies the safe corrections.
 
 ## Structure
 
@@ -426,10 +489,13 @@ bundle exec rspec
 │       │   └── shell.rb    # shell of the CLI (Thor)
 │       ├── commands/
 │       │   ├── base.rb     # base of the commands
+│       │   ├── console.rb  # console command
 │       │   ├── install.rb  # install command
 │       │   ├── reset.rb    # reset command
 │       │   ├── setup.rb    # setup command
-│       │   └── snapshot.rb # snapshot command
+│       │   ├── snapshot.rb # snapshot command
+│       │   ├── start.rb    # start command
+│       │   └── test.rb     # test command
 │       └── snapshot/
 │           └── manager.rb  # snapshot kept in .pardal/
 ├── models/
@@ -441,9 +507,15 @@ bundle exec rspec
 │   ├── products.rb         # Products routes (queries)
 │   └── payments.rb         # Payments routes (lifecycle)
 ├── spec/
+│   ├── e2e/                # end-to-end examples (curl against the server)
+│   ├── integration/        # request examples (Rack::Test)
+│   ├── unit/               # model examples
+│   ├── support/
+│   │   └── e2e_server.rb   # starts/stops the server used by spec/e2e
 │   └── spec_helper.rb      # RSpec configuration
 ├── storage/                # database files (generated)
 ├── .rspec
+├── .rubocop.yml            # rules of the lint task
 ├── config.ru
 ├── Gemfile
 ├── Rakefile

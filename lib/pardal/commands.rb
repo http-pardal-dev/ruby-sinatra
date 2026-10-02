@@ -13,5 +13,8 @@ end
 require_relative "commands/base"
 require_relative "commands/install"
 require_relative "commands/setup"
+require_relative "commands/start"
+require_relative "commands/test"
+require_relative "commands/console"
 require_relative "commands/reset"
 require_relative "commands/snapshot"

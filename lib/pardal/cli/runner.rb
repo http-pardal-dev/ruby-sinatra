@@ -57,15 +57,30 @@ module Pardal
 
       desc "setup", "Prepares the initial environment"
       method_option :install, type: :boolean,
-                        desc: "Installs the dependencies even when they are already in place"
+                              desc: "Installs the dependencies even when they are already in place"
       method_option :skip_install, type: :boolean,
-                        desc: "Does not check nor install the dependencies"
+                                   desc: "Does not check nor install the dependencies"
       def setup
         if options[:install] && options[:skip_install]
           raise Thor::Error, "--install and --skip-install cannot be used together"
         end
 
         run_command(Commands::Setup, install: options[:install], skip_install: options[:skip_install])
+      end
+
+      desc "start", "Runs the application"
+      def start
+        run_command(Commands::Start)
+      end
+
+      desc "test", "Runs the tests"
+      def test
+        run_command(Commands::Test)
+      end
+
+      desc "console", "Opens an interactive console"
+      def console
+        run_command(Commands::Console)
       end
 
       desc "install", "Installs the dependencies of the project"
@@ -75,14 +90,14 @@ module Pardal
 
       desc "reset", "Restores the snapshot of the environment"
       method_option :force, type: :boolean, default: false, aliases: "-f",
-                        desc: "Restores without asking for confirmation"
+                            desc: "Restores without asking for confirmation"
       def reset
         run_command(Commands::Reset, shell: shell, force: options[:force])
       end
 
       desc "snapshot", "Saves a restoration point of the environment"
       method_option :force, type: :boolean, default: false, aliases: "-f",
-                        desc: "Replaces the snapshot that already exists"
+                            desc: "Replaces the snapshot that already exists"
       def snapshot
         run_command(Commands::Snapshot, force: options[:force])
       end

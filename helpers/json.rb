@@ -7,7 +7,7 @@ module Helpers
   module Json
     # Serializes `data` as JSON, optionally with an HTTP status.
     def json(data, status_code = 200)
-      self.status(status_code)
+      status(status_code)
       data.to_json
     end
 

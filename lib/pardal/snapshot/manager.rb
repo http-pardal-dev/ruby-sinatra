@@ -154,7 +154,7 @@ module Pardal
 
       def copy_error_message(error)
         "Could not apply the snapshot (#{error.class}). " \
-        "On Windows, close the server and the editor before running the command."
+          "On Windows, close the server and the editor before running the command."
       end
     end
   end

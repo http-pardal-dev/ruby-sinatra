@@ -6,6 +6,9 @@ ENV["APP_ENV"] = "test"
 require_relative "../config/environment"
 require "rack/test"
 
+# Support files shared by the whole suite (the e2e server lives here).
+Dir[File.join(__dir__, "support", "**", "*.rb")].each { |file| require file }
+
 # Provides the `app` method required by Rack::Test in request specs.
 module AppHelper
   def app

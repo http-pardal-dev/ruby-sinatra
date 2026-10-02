@@ -18,7 +18,7 @@ module Pardal
       def call
         raise Error, missing_snapshot_message unless snapshot_manager.exist?
 
-        unless confirm
+        unless confirm?
           puts
           puts "Nothing was changed. Use --force to restore without being asked."
 
@@ -41,7 +41,7 @@ module Pardal
 
       # The restore discards whatever was done after the snapshot, so it only
       # happens after the confirmation - unless the command comes with --force.
-      def confirm
+      def confirm?
         return true if @force
 
         shell.yes?("This discards the changes and the files created after the " \
@@ -50,7 +50,7 @@ module Pardal
 
       def missing_snapshot_message
         "No snapshot in #{snapshot_directory}/. " \
-        "Run bin/pardal setup to prepare the environment and save the first snapshot."
+          "Run bin/pardal setup to prepare the environment and save the first snapshot."
       end
     end
   end

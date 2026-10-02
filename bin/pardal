@@ -6,7 +6,8 @@
 # It only prepares the runtime and hands the arguments to the CLI in lib/.
 # The commands themselves live in `lib/pardal/`.
 
-require_relative "../config/boot"
+# The CLI needs less than the application: see config/cli.rb.
+require_relative "../config/cli"
 
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 require "pardal"

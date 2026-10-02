@@ -29,6 +29,20 @@ same commands on every server of the project.
 | `bin/pardal reset` | Restores the initial environment |
 | `bin/pardal --help` | Lists the available commands |
 
+On macOS and Linux, the executable is called directly:
+
+```bash
+bin/pardal setup
+```
+
+On Windows, `bin/pardal` is a Ruby file without an extension and cannot be
+called directly, so the wrapper `bin\pardal.cmd` is used instead. It runs the
+same script and keeps the exit code:
+
+```bat
+bin\pardal.cmd setup
+```
+
 ### `bin/pardal setup`
 
 Prepares everything the environment needs:
@@ -43,8 +57,6 @@ Prepares everything the environment needs:
 ```bash
 bin/pardal setup
 ```
-
-> On Windows, where the file has no extension: `ruby bin/pardal setup`.
 
 The command is idempotent: running it again on an environment that is already
 ready changes nothing, so it can be used to recover a broken environment.
@@ -295,6 +307,11 @@ The rule about *when* a payment may change state (only from `"pending"`) lives i
 The runtime (Bundler and the gems) is prepared by `config/boot.rb`, required at
 the top of `config/environment.rb`.
 
+The commands use `config/cli.rb` instead: they need only Thor, so that file
+activates the bundle (`bundler/setup`, which does not load the gems) instead of
+loading Sinatra, ActiveRecord and SQLite. Loading what no command uses would
+make every command much slower to start.
+
 Each environment has a file in `config/environment/`, loaded by
 `config/environment.rb` according to `APP_ENV`:
 
@@ -324,9 +341,11 @@ bundle exec rspec
 .
 ├── app.rb                  # Sinatra application (configuration + loads the routes)
 ├── bin/
-│   └── pardal              # executable of the commands
+│   ├── pardal              # executable of the commands
+│   └── pardal.cmd          # same executable, for Windows
 ├── config/
-│   ├── boot.rb             # boot: Bundler and gems
+│   ├── boot.rb             # boot of the application: Bundler and gems
+│   ├── cli.rb              # boot of the commands: only the bundle is activated
 │   ├── environment.rb      # loads the application and settings
 │   └── environment/
 │       ├── development.rb  # development settings

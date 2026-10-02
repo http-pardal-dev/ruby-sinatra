@@ -7,9 +7,9 @@
 # deleting and breaking any file without fear: `bin/reset` brings everything
 # back.
 #
-#   .pardal/
+#   .snapshot/
 #   |-- created_at     # when the snapshot was saved
-#   `-- snapshot/      # copy of the environment
+#   `-- (the copy)     # code, configuration and databases
 #
 # The first snapshot is saved by `bin/setup`, when there is none yet. This
 # command is for the moments that deserve a point of their own, and it never
@@ -25,12 +25,12 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
 # Folder of the project that keeps the snapshot.
-directory=".pardal"
+directory=".snapshot"
 
-# What is left out of the snapshot: `.git` and `.pardal` would be copied
+# What is left out of the snapshot: `.git` and `.snapshot` would be copied
 # forever, and the rest are tools of the user, which do not belong to the
 # environment and must not be deleted by the reset.
-excluded=".git .pardal .idea .vscode .DS_Store Thumbs.db"
+excluded=".git .snapshot .idea .vscode .DS_Store Thumbs.db"
 
 usage() {
   cat <<EOF
@@ -41,6 +41,8 @@ Saves a restoration point of the environment in $directory/.
 Options:
   -f, --force   Replaces the snapshot that already exists
   -h, --help    Shows this message
+
+Run bin/help to see the commands.
 EOF
 }
 
@@ -88,7 +90,7 @@ for argument in "$@"; do
   esac
 done
 
-if [ -d "$directory/snapshot" ] && [ -f "$directory/created_at" ] && [ "$force" = false ]; then
+if [ -d "$directory" ] && [ -f "$directory/created_at" ] && [ "$force" = false ]; then
   printf '\nThere is already a snapshot in %s/, saved at %s. Nothing was changed.\n' \
     "$directory" "$(snapshot_date)"
   printf 'Use --force to replace it.\n'
@@ -100,15 +102,16 @@ step "Saving the snapshot ($directory/)"
 
 # The copy is made with tar, which is what carries the folders and the
 # permissions of the environment from one system to another.
-rm -rf "$directory/snapshot"
-mkdir -p "$directory/snapshot" ||
-  fail "Could not prepare $directory/snapshot. Check the permissions of the folder."
+rm -rf "$directory"
+mkdir -p "$directory" ||
+  fail "Could not prepare $directory. Check the permissions of the folder."
 
-tar $(tar_excludes) -cf - . | tar -xf - -C "$directory/snapshot" ||
+tar $(tar_excludes) -cf - . | tar -xf - -C "$directory" ||
   fail "Could not save the snapshot. On Windows, close the server and the editor before running the command."
 
 # Written last, because its presence is what tells that the snapshot finished
-# being saved.
+# being saved. It sits beside the copy as metadata of the snapshot, and
+# `bin/reset` leaves it out of the restore.
 date +%Y-%m-%dT%H:%M:%S%z > "$directory/created_at" ||
   fail "Could not save the moment of the snapshot."
 

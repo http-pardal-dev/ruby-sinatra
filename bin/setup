@@ -27,6 +27,8 @@ Options:
       --install        Installs the dependencies even when they are already in place
       --skip-install   Does not check nor install the dependencies
   -h, --help           Shows this message
+
+Run bin/help to see the commands.
 EOF
 }
 
@@ -86,16 +88,16 @@ required=$(sed -n 's/^[[:space:]]*ruby[[:space:]]*"\(.*\)"/\1/p' Gemfile)
 version_is_at_least "$installed" "${required#>= }" ||
   fail "Ruby $installed installed, but the project requires $required (Gemfile). Install a compatible version: https://www.ruby-lang.org/en/downloads/"
 
-# 2. The dependencies, only when they are missing. The installation itself is
-#    done by Bundler: `--skip-install` skips the check and the installation and
-#    `--install` always installs.
+# 2. The dependencies, only when they are missing. The installation itself
+#    belongs to `bin/install`, the command that knows how to do it: this one
+#    only decides when it is needed. `--skip-install` skips the check and the
+#    installation and `--install` always installs.
 if [ "$skip_install" = false ]; then
   command -v bundle > /dev/null 2>&1 ||
     fail "Bundler not found. Install it with: gem install bundler"
 
   if [ "$install" = true ] || ! bundle check > /dev/null 2>&1; then
-    step "Installing the dependencies (bundle install)"
-    bundle install || fail "\`bundle install\` failed. Review the Gemfile and try again."
+    sh "$root/bin/install"
   else
     step "Checking the dependencies"
     printf '    The dependencies are already installed.\n'
@@ -134,9 +136,9 @@ done
 
 # 6. The first snapshot, saved when there is none. From then on it belongs to
 #    the user, who can replace it with `bin/snapshot --force`.
-if [ -d .pardal/snapshot ] && [ -f .pardal/created_at ]; then
-  step "Keeping the snapshot (.pardal/)"
-  printf '    The snapshot of %s was kept.\n' "$(cut -c 1-16 .pardal/created_at | tr 'T' '@' | sed 's/@/ at /')"
+if [ -d .snapshot ] && [ -f .snapshot/created_at ]; then
+  step "Keeping the snapshot (.snapshot/)"
+  printf '    The snapshot of %s was kept.\n' "$(cut -c 1-16 .snapshot/created_at | tr 'T' '@' | sed 's/@/ at /')"
 else
   # The snapshot is saved by the command that knows how to save it, and this
   # one only decides when it is needed.

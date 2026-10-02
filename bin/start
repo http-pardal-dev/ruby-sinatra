@@ -25,6 +25,8 @@ Starts the HTTP server.
 
 Options:
   -h, --help   Shows this message
+
+Run bin/help to see the commands.
 EOF
 }
 

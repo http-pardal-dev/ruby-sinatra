@@ -6,7 +6,7 @@
 !/storage/.gitkeep
 
 # Initial state of the environment, saved by `bin/setup`
-/.pardal/
+/.snapshot/
 
 # Local configuration
 /.env

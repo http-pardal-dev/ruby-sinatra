@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# reset - brings the environment back to the snapshot kept in `.pardal/`.
+# reset - brings the environment back to the snapshot kept in `.snapshot/`.
 #
 # The snapshot is saved by `bin/setup` and by `bin/snapshot`; this command only
 # restores it:
@@ -20,11 +20,11 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
 # Folder of the project that keeps the snapshot.
-directory=".pardal"
+directory=".snapshot"
 
 # What the reset never touches: the version control and the tools of the user do
 # not belong to the environment.
-excluded=".git .pardal .idea .vscode .DS_Store Thumbs.db"
+excluded=".git .snapshot .idea .vscode .DS_Store Thumbs.db"
 
 usage() {
   cat <<EOF
@@ -35,6 +35,8 @@ Restores the environment saved in $directory/.
 Options:
   -f, --force   Restores without asking for confirmation
   -h, --help    Shows this message
+
+Run bin/help to see the commands.
 EOF
 }
 
@@ -89,11 +91,14 @@ confirm() {
 # Copying first and removing after is also what keeps a reset that fails half way
 # from losing anything: there is no moment where a file exists only somewhere
 # else.
+#
+# `created_at` is metadata of the snapshot and not part of the environment, so
+# the copy leaves it behind - it only tells when the snapshot was saved.
 restore() {
-  tar -cf - -C "$directory/snapshot" . | tar -xf - -C . ||
+  tar -C "$directory" --exclude=./created_at -cf - . | tar -xf - -C . ||
     fail "Could not restore the snapshot. On Windows, close the server and the editor, then run bin/reset --force again."
 
-  remove_extras "$directory/snapshot" "."
+  remove_extras "$directory" "."
 }
 
 # Removes what the snapshot does not have, walking the two folders at the same
@@ -127,7 +132,7 @@ for argument in "$@"; do
   esac
 done
 
-[ -d "$directory/snapshot" ] && [ -f "$directory/created_at" ] ||
+[ -d "$directory" ] && [ -f "$directory/created_at" ] ||
   fail "No snapshot in $directory/. Run bin/setup to prepare the environment and save the first snapshot."
 
 if ! confirm; then

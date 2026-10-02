@@ -28,8 +28,10 @@ the environment already needs.
 | --- | --- |
 | `bin/setup` | Prepares the initial environment |
 | `bin/start` | Runs the application |
+| `bin/install` | Installs the dependencies of the project |
 | `bin/snapshot` | Saves a restoration point |
 | `bin/reset` | Restores the snapshot |
+| `bin/help` | Shows the commands and how to use them |
 
 The scripts need a POSIX shell. On macOS and Linux they run directly:
 
@@ -51,6 +53,14 @@ bin/setup --help
 bin/reset --help
 ```
 
+`bin/help` is the starting point: it lists the commands, and with a command it
+opens the help of that command:
+
+```bash
+bin/help
+bin/help setup
+```
+
 Exit codes follow a fixed convention: `0` on success, `1` when the execution
 fails, and `2` on invalid usage.
 
@@ -66,7 +76,7 @@ RuboCop (see `.rubocop.yml`).
 Prepares everything the environment needs:
 
 1. checks the Ruby version required by the `Gemfile`;
-2. installs the dependencies, when they are missing;
+2. installs the dependencies, when they are missing (see `bin/install`);
 3. creates `.env` from `.env.example` when it does not exist yet;
 4. creates `storage/`, where the SQLite databases live;
 5. runs the migrations of the `development` and of the `test` databases;
@@ -91,9 +101,9 @@ bin/setup --install
 bin/setup --skip-install
 ```
 
-The installation itself lives only here: Bundler does it (`bundle install`),
-and `bin/start` refuses to run when the dependencies are missing, pointing
-back to `bin/setup`.
+The installation itself lives in `bin/install`, which is what `bin/setup` calls
+when the dependencies are missing, and `bin/start` refuses to run without them,
+pointing back to `bin/setup`.
 
 ### `bin/start`
 
@@ -106,6 +116,18 @@ bin/start
 The server listens on `http://localhost:9292` and Ctrl+C stops it. The
 dependencies are checked first, so a clone that still needs them gets a message
 pointing to `bin/setup` instead of an error from Bundler.
+
+### `bin/install`
+
+Installs the dependencies declared in the `Gemfile`:
+
+```bash
+bin/install
+```
+
+The command runs `bundle install` directly: it is the installation that
+`bin/setup` asks for when the dependencies are missing, and it can also be used
+on its own. With everything already in place, it changes nothing.
 
 ### Console (IRB)
 
@@ -126,7 +148,7 @@ App         #=> the Sinatra application
 
 ### `bin/snapshot`
 
-Saves a copy of the whole environment in `.pardal/`, the point `reset` brings
+Saves a copy of the whole environment in `.snapshot/`, the point `reset` brings
 it back to:
 
 ```bash
@@ -143,7 +165,7 @@ bin/snapshot --force
 
 ### `bin/reset`
 
-Restores the snapshot kept in `.pardal/`, which is what allows creating,
+Restores the snapshot kept in `.snapshot/`, which is what allows creating,
 changing, deleting and breaking **any file** without fear:
 
 ```bash
@@ -164,6 +186,21 @@ a script:
 bin/reset --force
 ```
 
+### `bin/help`
+
+Lists the commands of the server, with what each one is for:
+
+```bash
+bin/help
+```
+
+With a command, it shows the help of that command - the same as
+`bin/setup --help`:
+
+```bash
+bin/help setup
+```
+
 ### How the snapshot flows
 
 ```text
@@ -173,24 +210,23 @@ reset     restores the snapshot that exists
 ```
 
 The snapshot is a copy of the whole environment, not only of the database, and
-it is stored in `.pardal/`, which is not versioned:
+it is stored in `.snapshot/`, which is not versioned:
 
 ```text
-.pardal/
-├── created_at        # when the snapshot was saved
-└── snapshot/         # copy of the whole environment
-    ├── .env
-    ├── app.rb
-    ├── bin/
-    ├── config/
-    ├── data/
-    ├── db/
-    ├── models/
-    ├── routes/
-    ├── spec/
-    └── storage/
-        ├── development.sqlite3
-        └── test.sqlite3
+.snapshot/
+├── created_at        # when the snapshot was saved (metadata, not restored)
+├── .env
+├── app.rb
+├── bin/
+├── config/
+├── data/
+├── db/
+├── models/
+├── routes/
+├── spec/
+└── storage/
+    ├── development.sqlite3
+    └── test.sqlite3
 ```
 
 The version control (`.git`) and the tools of the user (`.idea`, `.vscode`,
@@ -441,8 +477,10 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 ├── bin/
 │   ├── setup               # prepares the environment
 │   ├── start               # starts the server
+│   ├── install             # installs the dependencies
 │   ├── snapshot            # saves a restoration point
-│   └── reset               # restores the snapshot
+│   ├── reset               # restores the snapshot
+│   └── help                # shows the commands
 ├── config/
 │   ├── boot.rb             # boot of the application: Bundler and gems
 │   ├── environment.rb      # loads the application and settings

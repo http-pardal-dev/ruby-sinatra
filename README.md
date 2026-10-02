@@ -26,6 +26,7 @@ same commands on every server of the project.
 | Command | Responsibility |
 | --- | --- |
 | `bin/pardal setup` | Prepares the initial environment |
+| `bin/pardal install` | Installs the dependencies of the project |
 | `bin/pardal reset` | Restores the initial environment |
 | `bin/pardal --help` | Lists the available commands |
 
@@ -43,12 +44,15 @@ same script and keeps the exit code:
 bin\pardal.cmd setup
 ```
 
+The dependencies are installed automatically when they are missing, so a fresh
+clone runs `setup` without asking for a `bundle install` first.
+
 ### `bin/pardal setup`
 
 Prepares everything the environment needs:
 
 1. checks the Ruby version required by the `Gemfile`;
-2. checks that Bundler is available and installs the dependencies;
+2. installs the dependencies, when they are missing;
 3. creates `.env` from `.env.example` when it does not exist yet;
 4. creates `storage/`, where the SQLite databases live;
 5. runs the migrations of the `development` and of the `test` databases;
@@ -60,6 +64,30 @@ bin/pardal setup
 
 The command is idempotent: running it again on an environment that is already
 ready changes nothing, so it can be used to recover a broken environment.
+
+The step that installs the dependencies can be controlled with two flags:
+
+| Flag | What it does |
+| --- | --- |
+| `--install` | Installs the dependencies, even when they are already in place |
+| `--skip-install` | Does not check nor install the dependencies |
+
+```bash
+bin/pardal setup --install
+bin/pardal setup --skip-install
+```
+
+### `bin/pardal install`
+
+Installs the dependencies declared in the `Gemfile`:
+
+```bash
+bin/pardal install
+```
+
+This is where the installation lives. `setup` calls this same command when the
+dependencies are missing, so there is only one place that knows how to install
+them.
 
 ### `bin/pardal reset`
 
@@ -307,10 +335,13 @@ The rule about *when* a payment may change state (only from `"pending"`) lives i
 The runtime (Bundler and the gems) is prepared by `config/boot.rb`, required at
 the top of `config/environment.rb`.
 
-The commands use `config/cli.rb` instead: they need only Thor, so that file
-activates the bundle (`bundler/setup`, which does not load the gems) instead of
-loading Sinatra, ActiveRecord and SQLite. Loading what no command uses would
-make every command much slower to start.
+The commands do not use `config/boot.rb`: they need only Thor, so
+`lib/pardal/launcher.rb` activates the bundle (`bundler/setup`, which does not
+load the gems) instead of loading Sinatra, ActiveRecord and SQLite. Loading what
+no command uses would make every command much slower to start.
+
+The launcher also installs the dependencies when they are missing, which is how
+the commands work on a fresh clone without a manual `bundle install`.
 
 Each environment has a file in `config/environment/`, loaded by
 `config/environment.rb` according to `APP_ENV`:
@@ -345,7 +376,6 @@ bundle exec rspec
 │   └── pardal.cmd          # same executable, for Windows
 ├── config/
 │   ├── boot.rb             # boot of the application: Bundler and gems
-│   ├── cli.rb              # boot of the commands: only the bundle is activated
 │   ├── environment.rb      # loads the application and settings
 │   └── environment/
 │       ├── development.rb  # development settings
@@ -363,11 +393,13 @@ bundle exec rspec
 │   ├── pardal.rb           # entry point of the commands
 │   └── pardal/
 │       ├── commands.rb     # commands of the interface
+│       ├── launcher.rb     # prepares the runtime of the commands
 │       ├── cli/
 │       │   ├── runner.rb   # command interface (Thor)
 │       │   └── shell.rb    # shell of the CLI (Thor)
 │       ├── commands/
 │       │   ├── base.rb     # base of the commands
+│       │   ├── install.rb  # install command
 │       │   ├── reset.rb    # reset command
 │       │   └── setup.rb    # setup command
 │       └── snapshot/

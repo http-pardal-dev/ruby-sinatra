@@ -10,12 +10,11 @@ module Pardal
     # environment that is already ready.
     #
     #   1. checks the Ruby version required by the Gemfile;
-    #   2. checks that Bundler is available;
-    #   3. installs the dependencies declared in the Gemfile;
-    #   4. creates `.env` from `.env.example`;
-    #   5. creates `storage/`, where the SQLite databases live;
-    #   6. runs the migrations of the `development` and `test` databases;
-    #   7. saves the whole environment in `.pardal/`, used by `reset`.
+    #   2. installs the dependencies, when needed;
+    #   3. creates `.env` from `.env.example`;
+    #   4. creates `storage/`, where the SQLite databases live;
+    #   5. runs the migrations of the `development` and `test` databases;
+    #   6. saves the whole environment in `.pardal/`, used by `reset`.
     class Setup < Base
       # Environments of the project (config/environment.rb and data/database.yml).
       ENVIRONMENTS = %w[development test].freeze
@@ -23,15 +22,21 @@ module Pardal
       # Used only when the Gemfile does not declare the Ruby version.
       DEFAULT_RUBY_REQUIREMENT = ">= 3.2"
 
+      # `install` forces the installation, `skip_install` skips the check and
+      # the installation. Without them the dependencies are installed only when
+      # they are missing.
+      def initialize(root:, install: false, skip_install: false)
+        super(root: root)
+        @install = install
+        @skip_install = skip_install
+        @installer = Install.new(root: root)
+      end
+
       # Runs every step, one by one, and returns the exit status (0).
       def call
         announce("Checking the Ruby version")
         check_ruby
 
-        announce("Checking Bundler")
-        check_bundler
-
-        announce("Installing the dependencies (bundle install)")
         install_dependencies
 
         announce("Preparing the local configuration (.env)")
@@ -55,6 +60,8 @@ module Pardal
 
       private
 
+      attr_reader :installer
+
       # --- steps -------------------------------------------------------------
 
       def check_ruby
@@ -68,16 +75,23 @@ module Pardal
               "Install a compatible version: https://www.ruby-lang.org/en/downloads/"
       end
 
-      def check_bundler
-        return if run(*bundle_command("--version"), quiet: true)
+      # The installation itself belongs to the `install` command: setup only
+      # decides when it is needed.
+      #
+      #   - `--skip-install` skips both the check and the installation;
+      #   - `--install` always installs, even when the gems are already in place;
+      #   - by default it installs only when `bundle check` finds them missing.
+      def install_dependencies
+        return if @skip_install
+        return dependencies_already_installed if !@install && installer.installed?
 
-        raise Error, "Bundler not found. Install it with: gem install bundler"
+        installer.call
       end
 
-      def install_dependencies
-        return if run(*bundle_command("install"))
+      def dependencies_already_installed
+        announce("Checking the dependencies")
 
-        raise Error, "`bundle install` failed. Review the Gemfile and try again."
+        puts "    The dependencies are already installed."
       end
 
       def create_env_file
@@ -124,12 +138,6 @@ module Pardal
 
       # --- helpers -----------------------------------------------------------
 
-      # Bundler called by Ruby itself (`ruby -S bundle`), which behaves the
-      # same on Windows, macOS and Linux.
-      def bundle_command(*args)
-        [Gem.ruby, "-S", "bundle", *args]
-      end
-
       # Version required by the Gemfile (ruby ">= 3.2"). The Gemfile is the only
       # source of the rule, so it does not need to be repeated here.
       def ruby_requirement
@@ -137,15 +145,6 @@ module Pardal
         return DEFAULT_RUBY_REQUIREMENT unless gemfile.file?
 
         gemfile.read[/^\s*ruby\s+"([^"]+)"/, 1] || DEFAULT_RUBY_REQUIREMENT
-      end
-
-      # Runs a command in the package root. `quiet` hides the output, used only
-      # to check whether Bundler exists.
-      def run(*command, env: {}, quiet: false)
-        options = { chdir: root }
-        options.merge!(out: File::NULL, err: File::NULL) if quiet
-
-        system(env, *command, **options)
       end
 
       def print_next_steps

@@ -3,13 +3,17 @@
 
 # Executable of the ruby-sinatra educational server.
 #
-# It only prepares the runtime and hands the arguments to the CLI in lib/.
+# It prepares the runtime and hands the arguments to the CLI in lib/.
 # The commands themselves live in `lib/pardal/`.
 
-# The CLI needs less than the application: see config/cli.rb.
-require_relative "../config/cli"
-
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+
+# The launcher comes first: it activates the bundle and installs the gems when
+# they are missing, which is what lets `setup` run on a fresh clone.
+require "pardal/launcher"
+
+Pardal::Launcher.new.boot
+
 require "pardal"
 
 Pardal::Cli::Runner.start(ARGV)

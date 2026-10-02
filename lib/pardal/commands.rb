@@ -11,5 +11,6 @@ module Pardal
 end
 
 require_relative "commands/base"
+require_relative "commands/install"
 require_relative "commands/setup"
 require_relative "commands/reset"

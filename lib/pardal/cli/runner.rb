@@ -56,8 +56,21 @@ module Pardal
       end
 
       desc "setup", "Prepares the initial environment"
+      method_option :install, type: :boolean,
+                        desc: "Installs the dependencies even when they are already in place"
+      method_option :skip_install, type: :boolean,
+                        desc: "Does not check nor install the dependencies"
       def setup
-        run_command(Commands::Setup)
+        if options[:install] && options[:skip_install]
+          raise Thor::Error, "--install and --skip-install cannot be used together"
+        end
+
+        run_command(Commands::Setup, install: options[:install], skip_install: options[:skip_install])
+      end
+
+      desc "install", "Installs the dependencies of the project"
+      def install
+        run_command(Commands::Install)
       end
 
       desc "reset", "Restores the initial environment"

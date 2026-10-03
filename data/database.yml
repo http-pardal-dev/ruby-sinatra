@@ -1,11 +1,41 @@
 # Database configuration per environment (SQLite).
 # Loaded by the sinatra-activerecord gem via `set :database_file`.
 # The database files live in storage/.
+#
+# The paths are written with PROJECT_ROOT (defined in config/boot.rb), so they
+# do not depend on the folder the command was started from: the same file is
+# found by the server, by `rake db:migrate` and by the specs.
+#
+# `pool` and `timeout` are the two SQLite settings worth knowing:
+#
+#   - pool: how many connections the application may hold. SQLite allows a
+#     single writer at a time, so a small pool is enough - a bigger one only
+#     makes the requests queue behind each other.
+#   - timeout: how long (in milliseconds) a request waits for the write lock
+#     before giving up. It is the busy timeout, and it is what turns "database
+#     is locked" from an immediate error into a short wait.
+#
+# This is a learning server: the same server behind a real database (PostgreSQL,
+# for instance) would be configured with a pool of its own size and no timeout.
 
 development:
   adapter: sqlite3
-  database: storage/development.sqlite3
+  database: <%= PROJECT_ROOT %>/storage/development.sqlite3
+  pool: 5
+  timeout: 5000
 
 test:
   adapter: sqlite3
-  database: storage/test.sqlite3
+  database: <%= PROJECT_ROOT %>/storage/test.sqlite3
+  pool: 5
+  timeout: 5000
+
+# The production environment exists so that "APP_ENV=production" is an answer
+# and not a boot error. It has no authentication and binds to the loopback
+# interface only (see config/puma.rb), so it is NOT fit for a real deployment:
+# it is here for exercises that ask about environments, not for the internet.
+production:
+  adapter: sqlite3
+  database: <%= PROJECT_ROOT %>/storage/production.sqlite3
+  pool: 5
+  timeout: 5000

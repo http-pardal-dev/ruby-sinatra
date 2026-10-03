@@ -146,6 +146,13 @@ step "Saving the snapshot ($directory/)"
 # a database that never existed - half of a transaction, a table that does not
 # match its rows. A database nobody writes to is not changing under the copy,
 # which is what makes the snapshot consistent.
+#
+# The `storage/*.sqlite3-wal` and `-shm` files go along with the database, and
+# that is deliberate. SQLite writes to the `-wal` first and folds it into the
+# database when it can, so a server stopped by Ctrl+C normally leaves none
+# behind; a `-wal` still present means the last process was killed, and it holds
+# transactions that were committed but not folded in yet. Copying the database
+# without it would throw those away. Copying the pair keeps them consistent.
 rm -rf "$directory"
 mkdir -p "$directory" ||
   fail "Could not prepare $directory. Check the permissions of the folder."

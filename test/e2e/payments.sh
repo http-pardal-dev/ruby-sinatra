@@ -10,7 +10,7 @@
 # `\"` is the shell escaping for the JSON quotes inside the double-quoted body,
 # so the command reaches curl exactly as it would be typed in a terminal.
 # `-s` only silences curl's progress meter; `-i` keeps the status line and the
-# headers, which are part of the lesson.
+# headers, which are part of what the example checks.
 #
 # Exit codes: 0 when every example passes, 1 when at least one fails.
 

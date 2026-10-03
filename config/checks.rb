@@ -4,11 +4,11 @@ require "active_record"
 
 # Startup checks.
 #
-# The mistakes a student makes on a local server are ordinary ones: a typo in
-# APP_ENV, a database that was never created, a migration file that was added
-# and never run. Each of them used to surface much later, as an error in the
-# middle of the first request (or as a confusing stack trace from deep inside
-# ActiveRecord). Here they stop the boot with a message that says what to do.
+# The mistakes that reach a local server are ordinary ones: a typo in APP_ENV, a
+# database that was never created, a migration file that was added and never
+# run. Each of them used to surface much later, as an error in the middle of the
+# first request (or as a confusing stack trace from deep inside ActiveRecord).
+# Here they stop the boot with a message that says what to do.
 #
 # The checks do NOT run when Rake loads the environment to run a task:
 # `rake db:migrate` is exactly the command that fixes two of the problems

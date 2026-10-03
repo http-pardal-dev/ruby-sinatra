@@ -2,7 +2,7 @@
 
 # Routes for the Users resource.
 #
-# Educational goal: CRUD and HTTP fundamentals.
+# Focus: CRUD and HTTP fundamentals.
 # Concepts: CRUD, route parameters, JSON, status codes,
 # validation and persistence.
 #

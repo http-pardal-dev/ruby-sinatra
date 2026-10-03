@@ -2,11 +2,11 @@
 
 require "active_record"
 
-# Payment model of the educational server.
+# Payment model.
 #
 # The `payments` table is created by the migrations in db/migrate.
 #
-# Educational goal: lifecycle.
+# Focus: lifecycle.
 # Concepts: states, actions, transitions, headers and idempotency.
 class Payment < ActiveRecord::Base
   # States a payment can be in. A payment is created `pending` and moves to

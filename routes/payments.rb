@@ -2,7 +2,7 @@
 
 # Routes for the Payments resource.
 #
-# Educational goal: lifecycle.
+# Focus: lifecycle.
 # Concepts: states, actions, transitions, headers and idempotency.
 #
 # A payment starts as "pending" and moves to "paid" or "cancelled".

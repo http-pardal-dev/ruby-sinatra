@@ -2,8 +2,7 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the Products routes, before the input hardening of the
-# roadmap (§3).
+# Baseline behavior of the Products routes.
 RSpec.describe "Products requests", type: :request do
   def product_body(overrides = {})
     {

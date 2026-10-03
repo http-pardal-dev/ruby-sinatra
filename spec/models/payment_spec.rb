@@ -2,8 +2,7 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the Payment model, before the transition hardening of
-# the roadmap (§5).
+# Baseline behavior of the Payment model.
 RSpec.describe Payment do
   def build_payment(overrides = {})
     described_class.new({ amount: "99.90" }.merge(overrides))

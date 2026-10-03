@@ -2,11 +2,11 @@
 
 require "active_record"
 
-# User model of the educational server.
+# User model.
 #
 # The `users` table is created by the migrations in db/migrate.
 #
-# Educational goal: CRUD and HTTP fundamentals.
+# Focus: CRUD and HTTP fundamentals.
 # Concepts: CRUD, route parameters, JSON, status codes,
 # validation and persistence.
 class User < ActiveRecord::Base

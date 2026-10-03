@@ -2,8 +2,7 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the Product model, before the validation hardening of
-# the roadmap (§3).
+# Baseline behavior of the Product model.
 RSpec.describe Product do
   def build_product(overrides = {})
     described_class.new({

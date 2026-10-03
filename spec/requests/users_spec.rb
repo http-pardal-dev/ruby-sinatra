@@ -2,9 +2,8 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the Users routes, before the input hardening of the
-# roadmap (§3). These request specs document the HTTP contract that the
-# hardening must preserve: status codes, response shapes and headers.
+# Baseline behavior of the Users routes. These request specs document the HTTP
+# contract: status codes, response shapes and headers.
 RSpec.describe "Users requests", type: :request do
   # The smallest valid user body: name, email and password decide validity.
   def user_body(overrides = {})

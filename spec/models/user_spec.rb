@@ -2,9 +2,8 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the User model, before the validation hardening of the
-# roadmap (§3). These specs document what the model accepts today so the
-# hardening changes stay visible, one spec at a time.
+# Baseline behavior of the User model. These specs document what the model
+# accepts, so a change that tightens a rule has to show itself here first.
 RSpec.describe User do
   # Builds the smallest valid user: name, email and password decide validity,
   # and the remaining attributes fall back to their defaults.

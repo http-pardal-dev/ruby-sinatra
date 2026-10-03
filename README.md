@@ -1,26 +1,38 @@
-# ruby-sinatra — educational server
+# ruby-sinatra — Sinatra HTTP server
 
-Educational server for learning about servers, backend and HTTP, built with
-Ruby and Sinatra. The environment brings together **three resources**, each one
-used to teach a different set of HTTP concepts:
+HTTP server built with Ruby and Sinatra, serving a small JSON API over three
+resources, each one showing a different set of HTTP concerns:
 
-| Resource | Focus | Planned concepts |
+| Resource | Focus | Concepts |
 | --- | --- | --- |
 | **Users** | CRUD and fundamentals | CRUD, route parameters, JSON, status codes, validation and persistence |
 | **Products** | Queries | query parameters, filters, sorting, pagination and partial update |
-| **Payments** | Lifecycle | states, actions, transitions, headers and idempotency |
+| **Payments** | Lifecycle | states, actions, atomic transitions, headers and idempotency |
 
 The three resources are part of the **same** Ruby + Sinatra environment.
 
-The environment is ready to be experimented with: the Sinatra base, the default
+The project is ready to be experimented with: the Sinatra base, the default
 JSON configuration, the **models**, the **migrations** that create the tables and
 the routes of each resource in `routes/`. Each model carries the validations
 required by its own table, and a request that breaks them receives a
 `400 Bad Request` with the list of messages.
 
+> ### This API has no authentication
+>
+> Every route is open: there is no login, no token and no permission of any kind.
+> Anything that reaches the server can create, change and delete users, products
+> and payments.
+>
+> The only protection is where the server listens: `127.0.0.1`, the loopback
+> interface, which exists only inside your own machine (see `config/puma.rb`).
+> **Do not change it to `0.0.0.0` or to a public address.** Do not run this server
+> on a shared machine, on a public server, or behind a tunnel or a port forward.
+>
+> Authentication is a concept for later, not something this server has.
+
 ## Commands
 
-The server is used through four scripts in `bin/`: plain POSIX shell, with no
+The server is used through seven scripts in `bin/`: plain POSIX shell, with no
 language runtime behind them, so they start instantly and depend only on what
 the environment already needs.
 
@@ -114,9 +126,19 @@ Runs the application with Puma, in the foreground:
 bin/start
 ```
 
-The server listens on `http://localhost:9292` and Ctrl+C stops it. The
+The server listens on `http://127.0.0.1:9292` and Ctrl+C stops it. The
 dependencies are checked first, so a clone that still needs them gets a message
 pointing to `bin/setup` instead of an error from Bundler.
+
+The address is `127.0.0.1` on purpose — see the warning at the top of this file.
+The port can be changed with the `PORT` environment variable:
+
+```bash
+PORT=3000 bin/start
+```
+
+Puma reads `config/puma.rb`, which is where the bind address and the port
+default live.
 
 ### `bin/install`
 
@@ -164,6 +186,11 @@ that was already left behind. Use `--force` to replace it on purpose:
 bin/snapshot --force
 ```
 
+**The server must be stopped.** While it runs, the SQLite files are open and can
+change in the middle of the copy, and the result would be a snapshot of a
+database that never existed. The command checks the port and refuses to run
+instead.
+
 ### `bin/reset`
 
 Restores the snapshot kept in `.snapshot/`, which is what allows creating,
@@ -186,6 +213,18 @@ a script:
 ```bash
 bin/reset --force
 ```
+
+Before asking, it **lists the files it is about to remove**: they were created
+after the snapshot and a file is often work nobody remembered making. To see
+that list and change nothing, use `--dry-run`:
+
+```bash
+bin/reset --dry-run
+```
+
+Like `bin/snapshot`, the reset requires the server to be stopped: replacing the
+database files underneath a running server would leave it writing to files that
+are no longer there.
 
 ### `bin/help`
 
@@ -259,14 +298,37 @@ bundle install
 
 ### Configuration
 
-The only environment variable is `APP_ENV` (`development` or `test`). Copy the
-example file to `.env` and adjust it if needed:
+The environment is chosen with `APP_ENV`, which accepts three values:
+
+| Value | Database | What it is for |
+| --- | --- | --- |
+| `development` (default) | `storage/development.sqlite3` | day to day work: SQL logs and request logging |
+| `test` | `storage/test.sqlite3` | the automated tests |
+| `production` | `storage/production.sqlite3` | a quiet run, with no logging |
+
+Copy the example file to `.env` and adjust it if needed:
 
 ```bash
 cp .env.example .env
 ```
 
-The database connection is configured in `data/database.yml` (SQLite).
+Any other value stops the boot with a message naming the ones the server knows —
+a typo such as `dev` would otherwise pick the wrong database and fail much later,
+far from the name that is actually wrong.
+
+The database connection is configured in `data/database.yml` (SQLite), with the
+connection pool and the busy timeout written next to it.
+
+### Ports
+
+| Variable | Default | What it is for |
+| --- | --- | --- |
+| `PORT` | `9292` | the development server (`bin/start`) |
+| `E2E_PORT` | `9393` | the server the end-to-end tests start |
+
+The two are deliberately different, so a `bin/start` left open can never answer
+the tests with the development database. `bin/snapshot` and `bin/reset` check
+both ports and refuse to run while either one answers.
 
 ### Database setup
 
@@ -282,19 +344,28 @@ Prepare the test database as well:
 APP_ENV=test bundle exec rake db:migrate
 ```
 
+`bin/setup` does both. Running the server without a ready database stops the
+boot with a message saying so, instead of failing on the first request.
+
 ### Running the server
+
+```bash
+bin/start
+```
+
+or directly:
 
 ```bash
 bundle exec puma
 ```
 
-By default Puma listens on `http://localhost:9292`. To use another port, pass
-`-p`, for example `bundle exec puma -p 3000`.
+Either way the server listens on `http://127.0.0.1:9292` — the address comes
+from `config/puma.rb`, and it is not meant to be changed to `0.0.0.0`.
 
 Confirm the server is up:
 
 ```bash
-curl http://localhost:9292/
+curl http://127.0.0.1:9292/
 ```
 
 ### Tests
@@ -303,7 +374,12 @@ curl http://localhost:9292/
 bin/test
 ```
 
-The whole suite runs in the `test` environment.
+The whole suite runs in the `test` environment. The unit and request specs run
+on their own:
+
+```bash
+bundle exec rspec
+```
 
 ## Routes
 
@@ -329,6 +405,14 @@ name and its status.
 | `PATCH` | `/users/:id` | partial update |
 | `DELETE` | `/users/:id` | removal |
 
+`PUT` replaces the resource, so it requires everything the creation requires:
+`name`, `email` and `role`. A missing one is a `400`, not a silent partial
+update. The password is optional on an update — it never needs to be sent
+again. To change a single attribute, use `PATCH`.
+
+Repeating the same `PUT` leaves the user in the same state, which is what
+idempotent means. The same holds for `GET`, `PATCH` and `DELETE`.
+
 ### Products (`routes/products.rb`) — queries
 
 | Method | Route | Concept |
@@ -345,15 +429,46 @@ name and its status.
 > Filters, sorting and pagination use the same `GET /products` route,
 > distinguished by the query parameters.
 
+Every parameter of that route is validated before it reaches the query:
+
+| Parameter | Rule | Wrong value |
+| --- | --- | --- |
+| `page` | integer from 1 up | `400` |
+| `limit` | integer from 1 to `MAX_LIMIT` (100), default 10 | `400` |
+| `sort` | a column of the allowlist, `-` prefix for descending | `400` |
+| `category` | text of at most 50 characters | `400` |
+| `min_price`, `max_price` | a number | `400` |
+
+A value that is not what the route expects is never guessed: `page=abc`,
+`page=0`, `limit=101` and `sort=password_digest` are all refused with a `400`
+that names the parameter and the rule it broke. Sorting also breaks ties with
+`id`, so walking the pages never skips nor repeats a product.
+
 ### Payments (`routes/payments.rb`) — lifecycle
 
 | Method | Route | Concept |
 | --- | --- | --- |
 | `POST` | `/payments` | creation |
+| `GET` | `/payments` | list |
 | `GET` | `/payments/:id` | find by id |
 | `POST` | `/payments/:id/confirm` | confirm action |
 | `POST` | `/payments/:id/cancel` | cancel action |
 | `GET` | `/payments?status=...` | filter by state |
+
+A payment is created `pending` and moves to `paid` or `cancelled`. Nothing else
+is possible: any other transition answers `409 Conflict`.
+
+**The transition is atomic.** The current state is part of the `UPDATE` itself
+(`Payment.transition!`), so of two clients confirming the same payment at the
+same time, exactly one matches the row and wins; the other changes nothing and
+answers `409`. Reading the state first and writing it afterwards would let both
+clients read `pending` and both confirm.
+
+**The actions are not idempotent.** Repeating a confirm (or a cancel) on a
+payment that already left `pending` answers `409`, because the second request
+changes nothing and the client has to know that the first one already won. That
+is the difference between the two: an action that returns `200` twice would be
+claiming two payments were made.
 
 ## Default configuration (JSON)
 
@@ -362,7 +477,58 @@ The server is configured to work only with JSON:
 - every response uses the `application/json` content-type (setting `default_content_type`);
 - the request body is read as JSON by the `json_body` helper;
 - responses are serialized by the `json(data, status = 200)` helper;
-- errors also return JSON: `400` (invalid JSON), `404` (not found) and `500` (internal error).
+- errors also return JSON, whatever the status.
+
+### The body a request may carry
+
+Every JSON body of this API is a single resource with short fields, so a body
+larger than **64 KB** (`MAX_BODY_BYTES` in `helpers/json.rb`) is a mistake or an
+abuse and is refused with `413` before it is parsed. The limit is enforced on the
+declared length and on what is actually read, so a chunked request cannot get
+around it either.
+
+A body that is not JSON answers `400 Invalid JSON`, and valid JSON that is not an
+object — an array, a string — answers `400`, because the routes expect attributes.
+
+### What a request may set
+
+Each resource has an explicit allowlist of the attributes it accepts
+(`USER_CREATE_ATTRIBUTES` and friends, in `helpers/records.rb`). Anything else
+is refused with `400 Unknown fields`, naming the offending keys — including `id`
+and `password_digest`, which the server decides and the client never sets.
+
+An unknown field is a mistake of the client, so it is a `400` and never a `500`.
+
+### What a response shows
+
+Each model serializes itself through an explicit allowlist (`PUBLIC_ATTRIBUTES`).
+A column added later is not exposed until someone adds it to that list on
+purpose, and `password_digest` is not part of it.
+
+**Money is a string in the JSON**, not a number: `"price":"159.9"` and
+`"amount":"99.9"`. The columns are `decimal(10,2)` and a float cannot represent
+every value of a decimal exactly — `0.1` is not representable in binary — so
+money travels as text to keep every value exact. A client that does arithmetic
+with it has to convert deliberately, which is the honest thing to do with money.
+
+## Errors
+
+| Status | When |
+| --- | --- |
+| `400` | the request cannot be understood: invalid JSON, unknown field, wrong parameter, failed validation, malformed id |
+| `404` | the address does not exist, or the record does not |
+| `405` | the address exists under other methods, and not under this one (with an `Allow` header) |
+| `409` | the request conflicts with the current state: a repeated email that lost a race, or a payment transition that is not allowed |
+| `413` | the body is larger than the limit |
+| `500` | the server did not expect it — generic message, the details stay in the log |
+
+A `400` is the answer to almost everything a client can get wrong: a client that
+sends a mistake gets a `4xx` with a message about what to fix, not a `500` from
+the inside of the server.
+
+`400` and `404` are told apart by the id: an id that is not a positive integer
+could never exist (`400`, no query is even made), while a well formed id with no
+record behind it is a `404`.
 
 ## Database (ActiveRecord)
 
@@ -403,21 +569,32 @@ Each resource has an ActiveRecord model in `models/`:
 | `Payment` | `payments` | payment state (Payments resource) |
 
 `User` stores the password as a bcrypt digest (`has_secure_password`) and
-validates `name` (2-100 chars), `email` (valid and unique), `password` (minimum
-8 chars), `role` (`user` or `admin`) and `birthdate` (cannot be in the future).
-The digest is never part of a response.
+validates `name` (2-100 chars), `email` (valid, unique, at most 254 chars),
+`password` (minimum 8 chars), `role` (`user` or `admin`) and `birthdate` (a real
+date, not in the future). The email is stored stripped and downcased, which is
+how it is compared — otherwise `Ada@Example.com` and `ada@example.com` would look
+like two addresses. The digest is never part of a response.
+
+`birthdate` is checked **before** the cast: ActiveRecord turns an unreadable date
+into `nil` without complaining, so `"2000-13-40"` would be stored as "no
+birthdate" instead of being refused.
 
 `Product` validates `name` (2-100 chars), `description` (optional, max 1000
-chars), `category` (2-50 chars) and `price` (greater than or equal to 0).
+chars), `category` (2-50 chars) and `price` (from 0 up to `99 999 999.99`, which
+is what the column can hold).
 
-`Payment` validates `amount` (greater than 0) and includes the **state
-constants** of the lifecycle:
+`Payment` validates `amount` (greater than 0, up to `99 999 999.99`) and holds
+the **state constants** of the lifecycle:
 
-- `Payment::STATUSES` → `["pending", "paid", "failed", "cancelled"]`;
+- `Payment::STATUSES` → `["pending", "paid", "cancelled"]`;
 - `Payment::DEFAULT_STATUS` → `"pending"`.
 
-The rule about *when* a payment may change state (only from `"pending"`) lives in
-`routes/payments.rb`.
+There is no `failed` state: a payment is created `pending` and leaves it once,
+either to `paid` or to `cancelled`.
+
+The rule about *when* a payment may change state lives in
+`Payment.transition!`, as the `WHERE` of the update itself, and the routes decide
+which status to answer when it does not hold.
 
 ## Environments
 

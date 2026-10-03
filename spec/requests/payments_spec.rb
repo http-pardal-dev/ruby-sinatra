@@ -2,8 +2,7 @@
 
 require_relative "../spec_helper"
 
-# Baseline behavior of the Payments routes, before the transition hardening of
-# the roadmap (§5).
+# Baseline behavior of the Payments routes.
 RSpec.describe "Payments requests", type: :request do
   def create_payment(overrides = {})
     post_json "/payments", { "amount" => "99.90" }.merge(overrides)

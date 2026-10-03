@@ -2,7 +2,7 @@
 
 # Routes for the Products resource.
 #
-# Educational goal: queries.
+# Focus: queries.
 # Concepts: query parameters, filters, sorting, pagination and partial update.
 #
 # Everything sent in the query string is read from `params` and validated

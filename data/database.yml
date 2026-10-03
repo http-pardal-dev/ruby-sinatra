@@ -15,8 +15,8 @@
 #     before giving up. It is the busy timeout, and it is what turns "database
 #     is locked" from an immediate error into a short wait.
 #
-# This is a learning server: the same server behind a real database (PostgreSQL,
-# for instance) would be configured with a pool of its own size and no timeout.
+# The same server behind another database (PostgreSQL, for instance) would be
+# configured with a pool of its own size and no timeout.
 
 development:
   adapter: sqlite3
@@ -33,7 +33,7 @@ test:
 # The production environment exists so that "APP_ENV=production" is an answer
 # and not a boot error. It has no authentication and binds to the loopback
 # interface only (see config/puma.rb), so it is NOT fit for a real deployment:
-# it is here for exercises that ask about environments, not for the internet.
+# it exists to complete the set of environments, not to face the internet.
 production:
   adapter: sqlite3
   database: <%= PROJECT_ROOT %>/storage/production.sqlite3

@@ -2,11 +2,11 @@
 
 require "active_record"
 
-# Product model of the educational server.
+# Product model.
 #
 # The `products` table is created by the migrations in db/migrate.
 #
-# Educational goal: queries.
+# Focus: queries.
 # Concepts: query parameters, filters, sorting, pagination and partial update.
 class Product < ActiveRecord::Base
   # Highest price the server accepts: the `price` column is a decimal(10, 2),

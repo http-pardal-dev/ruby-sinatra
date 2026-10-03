@@ -90,5 +90,32 @@ RSpec.describe Payment do
     it "returns false for a payment that does not exist" do
       expect(described_class.transition!(999_999, to: "paid")).to be(false)
     end
+
+    # Two clients confirming the same payment. The state is part of the UPDATE,
+    # so the second one matches no row and reports that it changed nothing -
+    # which is what keeps one payment from being confirmed twice.
+    it "lets only the first of two transitions on the same payment win" do
+      payment = build_payment
+      payment.save!
+
+      first = described_class.transition!(payment.id, to: "paid")
+      second = described_class.transition!(payment.id, to: "paid")
+
+      expect([first, second]).to eq([true, false])
+      expect(payment.reload.status).to eq("paid")
+    end
+
+    # A confirm and a cancel arriving together: the payment leaves "pending"
+    # once, so only one of the two can hold.
+    it "lets only one of a confirm and a cancel on the same payment win" do
+      payment = build_payment
+      payment.save!
+
+      confirm = described_class.transition!(payment.id, to: "paid")
+      cancel = described_class.transition!(payment.id, to: "cancelled")
+
+      expect([confirm, cancel].count(true)).to eq(1)
+      expect(payment.reload.status).to be_in(%w[paid cancelled])
+    end
   end
 end

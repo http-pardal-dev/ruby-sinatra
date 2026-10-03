@@ -89,7 +89,7 @@ RSpec.describe Payment do
     end
 
     it "returns false for a payment that does not exist" do
-      expect(described_class.transition!(999999, to: "paid")).to be(false)
+      expect(described_class.transition!(999_999, to: "paid")).to be(false)
     end
   end
 end

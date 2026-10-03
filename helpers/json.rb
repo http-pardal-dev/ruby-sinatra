@@ -23,22 +23,37 @@ module Helpers
     # an object (for example an array or a string) aborts the request with 400,
     # and a body larger than MAX_BODY_BYTES aborts it with 413.
     def json_body
-      if request.content_length && request.content_length.to_i > MAX_BODY_BYTES
-        halt 413, { error: "Request body too large" }.to_json
-      end
+      raw = read_body
+      return {} if raw.nil? || raw.strip.empty?
 
-      # Reads one byte past the limit: a body that fits is read whole, and a
-      # longer one is cut short, so the server never holds more than the limit
-      # plus one byte. Chunked requests have no content-length, which is why
-      # the limit is enforced here too, not only above.
-      body = request.body&.read(MAX_BODY_BYTES + 1)
-      if body && body.bytesize > MAX_BODY_BYTES
-        halt 413, { error: "Request body too large" }.to_json
-      end
+      parse_object(raw)
+    end
 
-      return {} if body.nil? || body.strip.empty?
+    private
 
-      data = JSON.parse(body)
+    # Reads the body, refusing it when it is larger than MAX_BODY_BYTES.
+    #
+    # The declared length answers first, so an oversized body is refused without
+    # being read. It cannot be trusted on its own (a chunked request has none),
+    # so the read stops one byte past the limit: a body that fits is read whole
+    # and a longer one is cut short, and the server never holds more than the
+    # limit plus one byte.
+    def read_body
+      refuse_large_body if request.content_length && request.content_length.to_i > MAX_BODY_BYTES
+
+      raw = request.body&.read(MAX_BODY_BYTES + 1)
+      refuse_large_body if raw && raw.bytesize > MAX_BODY_BYTES
+
+      raw
+    end
+
+    def refuse_large_body
+      halt 413, { error: "Request body too large" }.to_json
+    end
+
+    # Parses the body, which is expected to be a JSON object.
+    def parse_object(raw)
+      data = JSON.parse(raw)
       halt 400, { error: "JSON body must be an object" }.to_json unless data.is_a?(Hash)
 
       data

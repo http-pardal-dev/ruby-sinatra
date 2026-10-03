@@ -36,6 +36,27 @@ Style/IfUnlessModifier:
 Metrics/MethodLength:
   Max: 15
 
+# A spec is a list of examples, and the list is the point: splitting it to
+# satisfy a line count would hide one behaviour per `describe` and make the
+# suite harder to read, not easier. The example itself is still checked.
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+
+# `find_or_404` is the name the routes read: it either finds the record or
+# answers 404, and the status code in the name is what tells that. A number in
+# a method name is not a problem here.
+Naming/VariableNumber:
+  Exclude:
+    - "helpers/records.rb"
+
+# `Payment.transition!` returns whether the transition happened, but it is a
+# command that performs it and may fail, not a question about the record, so it
+# keeps the `!` instead of reading as a predicate.
+Naming/PredicateMethod:
+  Exclude:
+    - "models/payment.rb"
+
 # A Gemfile has no frozen string literal comment, like every Gemfile.
 Style/FrozenStringLiteralComment:
   Exclude:

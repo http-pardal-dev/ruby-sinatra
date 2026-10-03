@@ -17,7 +17,15 @@ module Errors
   # not fit. The table is filled by app.rb after every route file has loaded
   # (see Errors.snapshot_routes!), because errors/errors.rb loads before
   # routes/ and the handler itself cannot reach the class routes.
-  PATTERNS = {}
+  #
+  # It is a module attribute and not a constant because it is written after this
+  # file is loaded: a frozen constant would be the wrong shape for a table that
+  # is still being filled.
+  @patterns = {}
+
+  class << self
+    attr_reader :patterns
+  end
 
   def self.registered(app)
     # The 404 answer. Sinatra calls this handler in two different situations,
@@ -40,10 +48,7 @@ module Errors
       if allowed.include?(request.request_method)
         nil
       elsif allowed.any?
-        allow = allowed.sort.join(", ")
-        headers "Allow" => allow
-        status 405
-        { error: "Method not allowed", allow: allow }.to_json
+        Errors.render_method_not_allowed(self, allowed)
       else
         { error: "Resource not found" }.to_json
       end
@@ -54,41 +59,63 @@ module Errors
     # else stays a generic 500 so internals never leak to the client.
     app.error do
       content_type :json
-      failure = env["sinatra.error"]
-      case failure
-      when ActiveRecord::RecordNotUnique
-        status 409
-        { error: "Resource already exists" }.to_json
-      when ActiveRecord::UnknownAttributeError
-        status 400
-        { error: "Unknown fields", messages: [failure.message] }.to_json
-      else
-        { error: "Internal server error" }.to_json
-      end
+
+      Errors.render_failure(self, env["sinatra.error"])
     end
   end
 
-  # Copies the route patterns of `app` into PATTERNS, one entry per method:
-  # app.rb calls this after requiring every route file.
+  # 405, with the methods the path does accept. The `Allow` header is part of
+  # the answer: without it a client has to guess what to try instead.
+  def self.render_method_not_allowed(app, allowed)
+    allow = allowed.sort.join(", ")
+    app.headers("Allow" => allow)
+    app.status 405
+
+    { error: "Method not allowed", allow: allow }.to_json
+  end
+
+  # The body of a 500. The status is already 500 and the message is generic on
+  # purpose: the exception itself is dumped to the error stream, never to the
+  # client.
+  def self.render_failure(app, failure)
+    case failure
+    when ActiveRecord::RecordNotUnique
+      app.status 409
+      { error: "Resource already exists" }.to_json
+    when ActiveRecord::UnknownAttributeError
+      app.status 400
+      { error: "Unknown fields", messages: [failure.message] }.to_json
+    else
+      { error: "Internal server error" }.to_json
+    end
+  end
+
+  # Copies the route patterns of `app` into the table above, one entry per
+  # method: app.rb calls this after requiring every route file.
   def self.snapshot_routes!(app)
-    PATTERNS.replace(app.routes.transform_values do |routes|
+    @patterns = app.routes.transform_values do |routes|
       routes.map(&:first)
-    end)
+    end
   end
 
   # HTTP methods whose routes match `path`, for the 405 answer above. HEAD is
   # served by Rack from every GET route, so a path with GET also allows HEAD.
   def self.methods_for(path)
     normalized = path.empty? ? "/" : path
-    methods = PATTERNS.select do |method, patterns|
-      method != "HEAD" && patterns.any? do |pattern|
-        !pattern.params(normalized).nil?
-      rescue StandardError
-        false
-      end
+    methods = @patterns.select do |method, patterns|
+      method != "HEAD" && patterns.any? { |pattern| matches?(pattern, normalized) }
     end.keys
-    methods << "HEAD" if methods.include?("GET") && !methods.include?("HEAD")
+    methods << "HEAD" if methods.include?("GET")
 
     methods
+  end
+
+  # Whether a route pattern accepts the path. A pattern that cannot even be
+  # asked (a malformed one) simply does not match: it must not take the answer
+  # down with it.
+  def self.matches?(pattern, path)
+    !pattern.params(path).nil?
+  rescue StandardError
+    false
   end
 end

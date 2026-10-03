@@ -10,7 +10,11 @@
 #   - files and folders that were created are removed.
 #
 # Since the restore discards whatever was done after the snapshot, the command
-# asks before doing it, unless it comes with `--force`.
+# asks before doing it, unless it comes with `--force`. Before asking, it lists
+# the files it is about to remove: `--dry-run` stops there.
+#
+# The server must be stopped: it holds the database files open, and replacing
+# them underneath it would be a restore of a database nobody had.
 #
 # Exit codes: 0 success, 1 error while running, 2 invalid usage.
 
@@ -32,11 +36,15 @@ Usage: bin/reset [options]
 
 Restores the environment saved in $directory/.
 
-Options:
-  -f, --force   Restores without asking for confirmation
-  -h, --help    Shows this message
+The files created after the snapshot are listed before the confirmation, and
+removed with it.
 
-Run bin/help to see the commands.
+Options:
+  -f, --force     Restores without asking for confirmation
+  -n, --dry-run   Lists the files that would be removed and changes nothing
+  -h, --help      Shows this message
+
+The server must be stopped. Run bin/help to see the commands.
 EOF
 }
 
@@ -59,6 +67,34 @@ is_excluded() {
   done
 
   return 1
+}
+
+# The ports a server of this project may be answering on: the one used during
+# development (`bin/start`, see config/puma.rb) and the one used by the
+# end-to-end tests (`bin/test`). Both keep the databases open, so both make the
+# restore unsafe.
+ports_of_servers() {
+  printf '%s %s\n' "${PORT:-9292}" "${E2E_PORT:-9393}"
+}
+
+# True when a server answers on `port`. The check asks the port instead of
+# looking for the process: any answer means somebody is using these files, which
+# is exactly what has to be ruled out, and the answer does not depend on how the
+# server was started (foreground, background, another terminal, another
+# machine-local shell).
+port_in_use() {
+  curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$1/" 2>/dev/null
+}
+
+# Refuses to continue while a server is running. The server holds the databases
+# open: replacing those files underneath it would leave it writing to files that
+# no longer exist, and the restore itself would copy a database being written to.
+require_stopped_servers() {
+  for port in $(ports_of_servers); do
+    if port_in_use "$port"; then
+      fail "A server is running on port $port (http://127.0.0.1:$port/). Stop it (Ctrl+C on the terminal that started it) and run this command again: restoring the environment while the server runs would replace the databases it is using."
+    fi
+  done
 }
 
 # The moment of the snapshot, in a readable way.
@@ -92,18 +128,27 @@ confirm() {
 # from losing anything: there is no moment where a file exists only somewhere
 # else.
 #
+# The files are only copied with the server stopped (see
+# require_stopped_servers). A running server keeps the SQLite files open, and
+# replacing them underneath it would leave the server writing to files that are
+# no longer there.
+#
 # `created_at` is metadata of the snapshot and not part of the environment, so
 # the copy leaves it behind - it only tells when the snapshot was saved.
 restore() {
   tar -C "$directory" --exclude=./created_at -cf - . | tar -xf - -C . ||
     fail "Could not restore the snapshot. On Windows, close the server and the editor, then run bin/reset --force again."
 
-  remove_extras "$directory" "."
+  walk_extras "$directory" "." remove_extra
 }
 
-# Removes what the snapshot does not have, walking the two folders at the same
-# time: $1 is what there was, $2 is what there is.
-remove_extras() {
+# Walks the two folders at the same time - $1 is what the snapshot has, $2 is
+# what there is - and runs $3 on every entry that exists only in $2. Those are
+# the entries the snapshot does not have: what the reset is about to remove.
+#
+# One walk does both jobs that need it, listing and removing, so the files shown
+# before the confirmation are exactly the files removed after it.
+walk_extras() {
   for entry in "$2"/* "$2"/.[!.]* "$2"/..?*; do
     [ -e "$entry" ] || continue
 
@@ -114,19 +159,37 @@ remove_extras() {
     fi
 
     if [ ! -e "$1/$entry_name" ]; then
-      rm -rf "$entry" ||
-        fail "Could not remove ($entry). On Windows, close the server and the editor, then run bin/reset --force again."
+      "$3" "$entry"
     elif [ -d "$entry" ] && [ ! -L "$entry" ]; then
-      remove_extras "$1/$entry_name" "$entry"
+      walk_extras "$1/$entry_name" "$entry" "$3"
     fi
   done
 }
 
+# Prints one entry of the list shown before the confirmation.
+list_extra() {
+  printf '    %s\n' "$1"
+}
+
+remove_extra() {
+  rm -rf "$1" ||
+    fail "Could not remove ($1). On Windows, close the server and the editor, then run bin/reset --force again."
+}
+
+# The files that were created after the snapshot, one per line. They are printed
+# before anything is restored: the reset deletes them without asking again, and
+# a file is often work nobody remembered making.
+extras_list() {
+  walk_extras "$directory" "." list_extra
+}
+
 force=false
+dry_run=false
 
 for argument in "$@"; do
   case "$argument" in
     -f | --force) force=true ;;
+    -n | --dry-run) dry_run=true ;;
     -h | --help) usage; exit 0 ;;
     *) printf 'Error: invalid usage: %s\n' "$argument" >&2; exit 2 ;;
   esac
@@ -134,6 +197,26 @@ done
 
 [ -d "$directory" ] && [ -f "$directory/created_at" ] ||
   fail "No snapshot in $directory/. Run bin/setup to prepare the environment and save the first snapshot."
+
+command -v curl > /dev/null 2>&1 ||
+  fail "curl not found. It is what the command uses to find out whether a server is running."
+
+require_stopped_servers
+
+step "Files created after the snapshot (these will be removed)"
+
+extras=$(extras_list)
+if [ -n "$extras" ]; then
+  printf '%s\n' "$extras"
+else
+  printf '    (none)\n'
+fi
+
+if [ "$dry_run" = true ]; then
+  printf '\nDry run: nothing was changed.\n'
+
+  exit 0
+fi
 
 if ! confirm; then
   printf '\nNothing was changed. Use --force to restore without being asked.\n'

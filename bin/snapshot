@@ -17,6 +17,10 @@
 # snapshot belongs to the user, and replacing it silently would make `reset`
 # take the environment back to a state that was already left behind.
 #
+# The server must be stopped before the copy is made: while it runs, the database
+# files are open and can change under the copy, and the snapshot would be of a
+# database that never existed.
+#
 # Exit codes: 0 success, 1 error while running, 2 invalid usage.
 
 set -e
@@ -42,7 +46,7 @@ Options:
   -f, --force   Replaces the snapshot that already exists
   -h, --help    Shows this message
 
-Run bin/help to see the commands.
+The server must be stopped. Run bin/help to see the commands.
 EOF
 }
 
@@ -65,6 +69,34 @@ is_excluded() {
   done
 
   return 1
+}
+
+# The ports a server of this project may be answering on: the one used during
+# development (`bin/start`, see config/puma.rb) and the one used by the
+# end-to-end tests (`bin/test`). Both keep the databases open, so both make the
+# copy unsafe.
+ports_of_servers() {
+  printf '%s %s\n' "${PORT:-9292}" "${E2E_PORT:-9393}"
+}
+
+# True when a server answers on `port`. The check asks the port instead of
+# looking for the process: any answer means somebody is using these files, which
+# is exactly what has to be ruled out, and the answer does not depend on how the
+# server was started (foreground, background, another terminal, another
+# machine-local shell).
+port_in_use() {
+  curl -s -o /dev/null --max-time 2 "http://127.0.0.1:$1/" 2>/dev/null
+}
+
+# Refuses to continue while a server is running. A snapshot taken then would be
+# of a database being written to, and `bin/reset` restoring it afterwards would
+# put back a state nobody ever had.
+require_stopped_servers() {
+  for port in $(ports_of_servers); do
+    if port_in_use "$port"; then
+      fail "A server is running on port $port (http://127.0.0.1:$port/). Stop it (Ctrl+C on the terminal that started it) and run this command again: saving or restoring the environment while the server runs would save a database that is being written to."
+    fi
+  done
 }
 
 # The same names of `excluded`, as the arguments that tar expects.
@@ -90,6 +122,11 @@ for argument in "$@"; do
   esac
 done
 
+command -v curl > /dev/null 2>&1 ||
+  fail "curl not found. It is what the command uses to find out whether a server is running."
+
+require_stopped_servers
+
 if [ -d "$directory" ] && [ -f "$directory/created_at" ] && [ "$force" = false ]; then
   printf '\nThere is already a snapshot in %s/, saved at %s. Nothing was changed.\n' \
     "$directory" "$(snapshot_date)"
@@ -102,6 +139,13 @@ step "Saving the snapshot ($directory/)"
 
 # The copy is made with tar, which is what carries the folders and the
 # permissions of the environment from one system to another.
+#
+# It only happens with the server stopped, and that is not a formality: while
+# the server runs, the SQLite files are open and can change between the moment
+# they are read and the moment they are written, and the result is a snapshot of
+# a database that never existed - half of a transaction, a table that does not
+# match its rows. A database nobody writes to is not changing under the copy,
+# which is what makes the snapshot consistent.
 rm -rf "$directory"
 mkdir -p "$directory" ||
   fail "Could not prepare $directory. Check the permissions of the folder."

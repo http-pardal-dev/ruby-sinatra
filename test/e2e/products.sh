@@ -20,7 +20,7 @@ suite "Products (queries)"
 example "creates a product"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Keyboard\",\"category\":\"peripherals\",\"price\":\"159.90\"}")
 
@@ -32,13 +32,13 @@ expect_contains "$response" '"name":"Keyboard"'
 example "finds a product by id"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Mouse\",\"category\":\"peripherals\",\"price\":\"39.90\"}")
 product_id=$(extract_id "$created")
 
 response=$(curl -s -i \
-  http://localhost:9292/products/$product_id)
+  "$base_url/products/$product_id")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"name":"Mouse"'
@@ -47,12 +47,12 @@ expect_contains "$response" '"name":"Mouse"'
 example "lists products with pagination"
 curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Monitor\",\"category\":\"displays\",\"price\":\"900.00\"}" > /dev/null
 
 response=$(curl -s -i \
-  "http://localhost:9292/products?page=1&limit=2")
+  "$base_url/products?page=1&limit=2")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"pagination":{"page":1,"limit":2'
@@ -64,12 +64,12 @@ category="e2e-category-$(unique_id)"
 
 curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Cable\",\"category\":\"$category\",\"price\":\"10.00\"}" > /dev/null
 
 response=$(curl -s -i \
-  "http://localhost:9292/products?category=$category")
+  "$base_url/products?category=$category")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" "\"category\":\"$category\""
@@ -79,12 +79,12 @@ expect_contains "$response" '"total":1'
 example "filters products by price range"
 curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Headset\",\"category\":\"audio\",\"price\":\"250.00\"}" > /dev/null
 
 response=$(curl -s -i \
-  "http://localhost:9292/products?min_price=200&max_price=300")
+  "$base_url/products?min_price=200&max_price=300")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"name":"Headset"'
@@ -93,12 +93,12 @@ expect_contains "$response" '"name":"Headset"'
 example "sorts products by price"
 curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Laptop\",\"category\":\"computers\",\"price\":\"3500.00\"}" > /dev/null
 
 response=$(curl -s -i \
-  "http://localhost:9292/products?sort=-price")
+  "$base_url/products?sort=-price")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"name":"Laptop"'
@@ -107,14 +107,14 @@ expect_contains "$response" '"name":"Laptop"'
 example "partially updates a product"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Webcam\",\"category\":\"video\",\"price\":\"180.00\"}")
 product_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X PATCH \
-  http://localhost:9292/products/$product_id \
+  "$base_url/products/$product_id" \
   -H "Content-Type: application/json" \
   -d "{\"price\":\"149.90\"}")
 
@@ -124,7 +124,7 @@ expect_contains "$response" '"price":"149.9"'
 # A product that does not exist: 404 not found.
 example "returns 404 for a product that does not exist"
 response=$(curl -s -i \
-  http://localhost:9292/products/999999)
+  "$base_url/products/999999")
 
 expect_contains "$response" "HTTP/1.1 404 Not Found"
 expect_contains "$response" '"error":"Product not found"'
@@ -133,7 +133,7 @@ expect_contains "$response" '"error":"Product not found"'
 example "rejects a product with a negative price"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/products \
+  "$base_url/products" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Broken\",\"category\":\"misc\",\"price\":\"-1\"}")
 

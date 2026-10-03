@@ -22,7 +22,7 @@ suite "Payments (lifecycle)"
 example "creates a payment"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"99.90\"}")
 
@@ -34,13 +34,13 @@ expect_contains "$response" '"status":"pending"'
 example "finds a payment by id"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"123.45\"}")
 payment_id=$(extract_id "$created")
 
 response=$(curl -s -i \
-  http://localhost:9292/payments/$payment_id)
+  "$base_url/payments/$payment_id")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"amount":"123.45"'
@@ -49,14 +49,14 @@ expect_contains "$response" '"amount":"123.45"'
 example "confirms a payment"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"99.90\"}")
 payment_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/confirm)
+  "$base_url/payments/$payment_id/confirm")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"status":"paid"'
@@ -65,14 +65,14 @@ expect_contains "$response" '"status":"paid"'
 example "cancels a payment"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"50.00\"}")
 payment_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/cancel)
+  "$base_url/payments/$payment_id/cancel")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"status":"cancelled"'
@@ -81,18 +81,18 @@ expect_contains "$response" '"status":"cancelled"'
 example "refuses to confirm a payment that is not pending"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"99.90\"}")
 payment_id=$(extract_id "$created")
 
 curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/confirm > /dev/null
+  "$base_url/payments/$payment_id/confirm" > /dev/null
 
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/confirm)
+  "$base_url/payments/$payment_id/confirm")
 
 expect_contains "$response" "HTTP/1.1 409 Conflict"
 
@@ -100,25 +100,25 @@ expect_contains "$response" "HTTP/1.1 409 Conflict"
 example "refuses to cancel a payment that is not pending"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"99.90\"}")
 payment_id=$(extract_id "$created")
 
 curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/cancel > /dev/null
+  "$base_url/payments/$payment_id/cancel" > /dev/null
 
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments/$payment_id/cancel)
+  "$base_url/payments/$payment_id/cancel")
 
 expect_contains "$response" "HTTP/1.1 409 Conflict"
 
 # A payment that does not exist: 404 not found.
 example "returns 404 for a payment that does not exist"
 response=$(curl -s -i \
-  http://localhost:9292/payments/999999)
+  "$base_url/payments/999999")
 
 expect_contains "$response" "HTTP/1.1 404 Not Found"
 expect_contains "$response" '"error":"Payment not found"'
@@ -127,7 +127,7 @@ expect_contains "$response" '"error":"Payment not found"'
 example "rejects a payment with an invalid amount"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"0\"}")
 
@@ -138,13 +138,13 @@ expect_contains "$response" '"error":"Validation failed"'
 example "lists payments filtered by status"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/payments \
+  "$base_url/payments" \
   -H "Content-Type: application/json" \
   -d "{\"amount\":\"77.77\"}")
 payment_id=$(extract_id "$created")
 
 response=$(curl -s -i \
-  "http://localhost:9292/payments?status=pending")
+  "$base_url/payments?status=pending")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" "\"id\":$payment_id"

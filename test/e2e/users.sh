@@ -22,7 +22,7 @@ suite "Users (CRUD)"
 example "creates a user"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Ada Lovelace\",\"email\":\"ada-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"2000-01-01\"}")
 
@@ -35,13 +35,13 @@ expect_not_contains "$response" "password_digest"
 example "finds a user by id"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Grace Hopper\",\"email\":\"grace-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"1906-12-09\"}")
 user_id=$(extract_id "$created")
 
 response=$(curl -s -i \
-  http://localhost:9292/users/$user_id)
+  "$base_url/users/$user_id")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"name":"Grace Hopper"'
@@ -50,12 +50,12 @@ expect_contains "$response" '"name":"Grace Hopper"'
 example "lists users"
 curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Alan Turing\",\"email\":\"alan-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"1912-06-23\"}" > /dev/null
 
 response=$(curl -s -i \
-  http://localhost:9292/users)
+  "$base_url/users")
 
 expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" '"name":"Alan Turing"'
@@ -64,14 +64,14 @@ expect_contains "$response" '"name":"Alan Turing"'
 example "replaces a user"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Ada Lovelace\",\"email\":\"ada-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"2000-01-01\"}")
 user_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X PUT \
-  http://localhost:9292/users/$user_id \
+  "$base_url/users/$user_id" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Ada King\",\"email\":\"ada.king-$(unique_id)@example.com\",\"role\":\"admin\"}")
 
@@ -83,14 +83,14 @@ expect_contains "$response" '"role":"admin"'
 example "partially updates a user"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Ada Lovelace\",\"email\":\"ada-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"2000-01-01\"}")
 user_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X PATCH \
-  http://localhost:9292/users/$user_id \
+  "$base_url/users/$user_id" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Ada L. King\"}")
 
@@ -101,21 +101,21 @@ expect_contains "$response" '"name":"Ada L. King"'
 example "deletes a user"
 created=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"To Delete\",\"email\":\"delete-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\"}")
 user_id=$(extract_id "$created")
 
 response=$(curl -s -i \
   -X DELETE \
-  http://localhost:9292/users/$user_id)
+  "$base_url/users/$user_id")
 
 expect_contains "$response" "HTTP/1.1 204 No Content"
 
 # A user that does not exist: 404 not found.
 example "returns 404 for a user that does not exist"
 response=$(curl -s -i \
-  http://localhost:9292/users/999999)
+  "$base_url/users/999999")
 
 expect_contains "$response" "HTTP/1.1 404 Not Found"
 expect_contains "$response" '"error":"User not found"'
@@ -124,7 +124,7 @@ expect_contains "$response" '"error":"User not found"'
 example "rejects a user without a name"
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"email\":\"no-name-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\"}")
 
@@ -137,13 +137,13 @@ email="duplicated-$(unique_id)@example.com"
 
 curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"First User\",\"email\":\"$email\",\"password\":\"secret123\",\"role\":\"user\"}" > /dev/null
 
 response=$(curl -s -i \
   -X POST \
-  http://localhost:9292/users \
+  "$base_url/users" \
   -H "Content-Type: application/json" \
   -d "{\"name\":\"Second User\",\"email\":\"$email\",\"password\":\"secret123\",\"role\":\"user\"}")
 

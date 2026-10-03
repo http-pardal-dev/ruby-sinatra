@@ -8,6 +8,12 @@
 # Variables are global because POSIX shell has no local: the names below are
 # never used by the examples.
 
+# Where the examples send their requests. `bin/test` starts the server and
+# exports the URL it started, so the examples never carry a port of their own.
+# It can also be pointed at any other server with E2E_BASE_URL, which is what
+# makes the suite runnable against a server started by hand.
+base_url=${E2E_BASE_URL:-http://127.0.0.1:9393}
+
 suite_examples=0
 suite_failures=0
 example_name=""
@@ -59,6 +65,16 @@ expect_contains() {
   esac
 
   fail_expectation "expected to include: $2"
+}
+
+# Expects the value to be exactly the expected one, with nothing around it.
+# Used for a single number, such as the status code curl reports with `-w`.
+expect_equals() {
+  if [ "$1" = "$2" ]; then
+    return 0
+  fi
+
+  fail_expectation "expected exactly: $2, but was: $1"
 }
 
 # The same, ignoring the case (headers such as `Location:`).

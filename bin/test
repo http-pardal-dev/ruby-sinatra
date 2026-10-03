@@ -3,11 +3,18 @@
 # test - runs the end-to-end tests.
 #
 # The examples live in test/e2e/*.sh and talk with a real server, so the
-# command starts one (in the `test` environment, on port 9292), waits until it
-# answers, runs the examples and stops the server at the end. Port 9292 has to
-# be free: the command refuses to start when something is already listening
-# there, which keeps the examples from reaching another server (and the
-# development database) by mistake.
+# command starts one (in the `test` environment, on port 9393), waits until it
+# answers, runs the examples and stops the server at the end.
+#
+# The port is NOT the development one (9292), on purpose: the examples reach the
+# server by URL, and sharing the port would let a `bin/start` left open answer
+# them with the development database. A different port makes the two impossible
+# to mix. Both are configurable - PORT for the development server, E2E_PORT for
+# this one - and the command refuses to start when the port it wants is taken.
+#
+# The test database is rebuilt before the server starts, so every run begins
+# from the same state: an example that depends on the data of a previous run
+# fails here instead of passing by accident.
 #
 # Exit codes: 0 success, 1 error while running or failed examples, 2 invalid
 # usage.
@@ -17,14 +24,22 @@ set -e
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
+# The port of this server, kept apart from the development port (9292).
+e2e_port=${E2E_PORT:-9393}
+base_url="http://127.0.0.1:$e2e_port"
+
+# The database the examples use, rebuilt on every run.
+database="storage/test.sqlite3"
+
 usage() {
   cat <<EOF
 Usage: bin/test [options]
 
 Runs the end-to-end tests (test/e2e/*.sh).
 
-The command starts the server in the test environment, waits until it answers,
-runs every example and stops the server at the end. Port 9292 must be free.
+The command rebuilds the test database, starts the server in the test environment
+on port $e2e_port, waits until it answers, runs every example and stops the server
+at the end.
 
 Options:
   -h, --help   Shows this message
@@ -53,18 +68,19 @@ command -v curl > /dev/null 2>&1 || fail "curl not found."
 bundle check > /dev/null 2>&1 ||
   fail "The dependencies are not installed. Run bin/setup to prepare the environment."
 
-# A leftover `bin/start` on the port would answer the examples with the
-# development database, so the tests only run when 9292 is free. The URL is
-# `localhost` (not 127.0.0.1) because Puma listens on `[::]`, the IPv6 side.
-if curl -s -o /dev/null --max-time 2 "http://localhost:9292/" 2>/dev/null; then
-  fail "Port 9292 is already in use. Stop the other server and run bin/test again."
+# A leftover `bin/start` on this port would answer the examples with the
+# development database, so the tests only run when the port is free.
+if curl -s -o /dev/null --max-time 2 "$base_url/" 2>/dev/null; then
+  fail "Port $e2e_port is already in use. Stop the other server and run bin/test again."
 fi
 
 server_pid=""
 log_file=$(mktemp "${TMPDIR:-/tmp}/pardal_puma.XXXXXX")
 summary_file=$(mktemp "${TMPDIR:-/tmp}/pardal_tests.XXXXXX")
 E2E_SUMMARY_FILE=$summary_file
+E2E_BASE_URL=$base_url
 export E2E_SUMMARY_FILE
+export E2E_BASE_URL
 
 stop_server() {
   [ -n "$server_pid" ] || return 0
@@ -93,14 +109,29 @@ cleanup() {
 trap 'cleanup' 0
 trap 'exit 1' 1 2 15
 
-step "Starting the server (test environment, http://localhost:9292)"
+# The database starts empty on every run. Without this, examples would depend on
+# whatever the previous run left behind (and on the order they run in), and a
+# failure would be impossible to tell from a leftover record.
+#
+# The `-wal` and `-shm` files go with it: they belong to the database being
+# deleted, and leaving them behind would make the new file start from a stale
+# write-ahead log.
+step "Rebuilding the test database ($database)"
 
-APP_ENV=test bundle exec puma config.ru > "$log_file" 2>&1 &
+rm -f "$database" "$database-wal" "$database-shm"
+APP_ENV=test bundle exec rake db:migrate > /dev/null ||
+  fail "\`rake db:migrate\` failed for the test database. Run bin/setup and try again."
+
+printf '    Empty and up to date.\n'
+
+step "Starting the server (test environment, $base_url)"
+
+APP_ENV=test PORT="$e2e_port" bundle exec puma config.ru > "$log_file" 2>&1 &
 server_pid=$!
 
 # Waits until the server answers, so the first `curl` never races the boot.
 waited=0
-until curl -s -o /dev/null --max-time 2 "http://localhost:9292/" 2>/dev/null; do
+until curl -s -o /dev/null --max-time 2 "$base_url/" 2>/dev/null; do
   if ! kill -0 "$server_pid" 2>/dev/null; then
     tail -20 "$log_file" >&2
     fail "The server exited during the boot."
@@ -120,7 +151,7 @@ printf '    Server ready.\n'
 step "Running the examples (test/e2e)"
 
 run_status=0
-for name in users products payments; do
+for name in protocol users products payments; do
   if ! sh "test/e2e/$name.sh"; then
     run_status=1
   fi

@@ -20,8 +20,15 @@ example_name=""
 example_failed=0
 example_detail=""
 
-# Prints the title of the suite.
+# A scratch folder for the examples that need one (a file written by a request
+# in the background, for instance). `suite` creates it and `summary` removes it,
+# so nothing an example leaves behind reaches the next run.
+suite_dir=""
+
+# Prints the title of the suite and prepares its scratch folder.
 suite() {
+  suite_dir=$(mktemp -d "${TMPDIR:-/tmp}/pardal_e2e.XXXXXX")
+
   printf '\n%s\n' "$1"
 }
 
@@ -122,6 +129,11 @@ summary() {
 
   if [ -n "${E2E_SUMMARY_FILE:-}" ]; then
     printf '%s %s\n' "$suite_examples" "$suite_failures" >> "$E2E_SUMMARY_FILE"
+  fi
+
+  if [ -n "$suite_dir" ]; then
+    rm -rf "$suite_dir"
+    suite_dir=""
   fi
 
   [ "$suite_failures" -eq 0 ]

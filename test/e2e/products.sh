@@ -140,4 +140,55 @@ response=$(curl -s -i \
 expect_contains "$response" "HTTP/1.1 400 Bad Request"
 expect_contains "$response" '"error":"Validation failed"'
 
+# The pagination parameters arrive as text. A value that is not a positive
+# integer cannot select a page, so it is a 400 and not an empty list.
+example "rejects a page that is not a positive integer"
+response=$(curl -s -i \
+  "$base_url/products?page=zero")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" '"error":"Invalid parameter"'
+expect_contains "$response" "page must be a positive integer"
+
+# A page below 1 is refused for the same reason: there is no page 0.
+example "rejects a page below 1"
+response=$(curl -s -i \
+  "$base_url/products?page=0")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "page must be a positive integer"
+
+# The limit has a maximum, so one request cannot ask for the whole table.
+example "rejects a limit above the maximum"
+response=$(curl -s -i \
+  "$base_url/products?limit=101")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "limit must be at most 100"
+
+# A limit at the maximum is accepted: it is a limit, not a rejection.
+example "accepts a limit at the maximum"
+response=$(curl -s -i \
+  "$base_url/products?limit=100")
+
+expect_contains "$response" "HTTP/1.1 200 OK"
+expect_contains "$response" '"limit":100'
+
+# A price filter that is not a number would silently change the query.
+example "rejects a price filter that is not a number"
+response=$(curl -s -i \
+  "$base_url/products?min_price=cheap")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "min_price must be a number"
+
+# The column to sort by comes from an allowlist, so it never reaches the query
+# unchecked.
+example "rejects an unknown sort column"
+response=$(curl -s -i \
+  "$base_url/products?sort=password_digest")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "sort must be one of"
+
 summary

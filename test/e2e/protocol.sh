@@ -33,7 +33,7 @@ response=$(curl -s -i \
   "$base_url/does-not-exist")
 
 expect_contains "$response" "HTTP/1.1 404 Not Found"
-expect_contains "$response" 'Content-Type: application/json'
+expect_contains_ci "$response" "content-type: application/json"
 expect_contains "$response" '"error":"Resource not found"'
 
 # The path exists, the method does not: 405 with the methods it does accept.
@@ -47,13 +47,18 @@ expect_contains "$response" "HTTP/1.1 405 Method Not Allowed"
 expect_contains_ci "$response" "allow:"
 expect_contains "$response" '"error":"Method not allowed"'
 
-# The same, for a path with a parameter in it.
+# The same, for a path with a parameter in it: /payments/:id/confirm only
+# answers POST, so asking it with PUT is a 405 and not a 404 - the address is
+# right and only the verb is wrong.
 example "answers 405 for an unsupported method on a parameterized path"
 response=$(curl -s -i \
-  -X DELETE \
-  "$base_url/users/1")
+  -X PUT \
+  "$base_url/payments/1/confirm" \
+  -H "Content-Type: application/json" \
+  -d "{}")
 
 expect_contains "$response" "HTTP/1.1 405 Method Not Allowed"
+expect_contains_ci "$response" "allow: POST"
 
 # A body that is not JSON at all never reaches a model.
 example "answers 400 for a body that is not JSON"
@@ -121,26 +126,35 @@ response=$(curl -s -i \
 expect_contains "$response" "HTTP/1.1 404 Not Found"
 expect_contains "$response" '"error":"User not found"'
 
-# A query parameter repeated by the client arrives as a list, not as a text. The
-# route only understands a single value, so it is refused instead of being read
-# as something else.
-example "answers 400 for a query parameter sent twice"
+# A query parameter sent as a list (`limit[]=1&limit[]=2`) arrives as an Array
+# instead of a text. The route only understands a single value, and reading the
+# Array as if it were a text would change the meaning of the query, so it is
+# refused.
+example "answers 400 for a query parameter sent as a list"
 response=$(curl -s -i \
-  "$base_url/products?limit=1&limit=2")
+  "$base_url/products?limit[]=1&limit[]=2")
 
 expect_contains "$response" "HTTP/1.1 400 Bad Request"
 expect_contains "$response" '"error":"Invalid parameter"'
+expect_contains "$response" "limit must be a positive integer"
 
-# A body larger than the limit is refused before it is parsed.
+# A body larger than the limit is refused before it is parsed. The body goes
+# through a file because a command line cannot carry 70 KB of it on Windows.
+#
+# Only the code of the status is checked, not its text: 413 was "Payload Too
+# Large" in RFC 7231 and is "Content Too Large" in RFC 9110, so the phrase
+# depends on the HTTP vocabulary of the server and changes between versions.
 example "answers 413 for a body larger than the limit"
 padding=$(awk 'BEGIN { while (i++ < 70000) printf "x" }')
+printf '{"padding":"%s"}' "$padding" > "$suite_dir/oversized.json"
+
 response=$(curl -s -i \
   -X POST \
   "$base_url/products" \
   -H "Content-Type: application/json" \
-  -d "{\"padding\":\"$padding\"}")
+  --data-binary "@$suite_dir/oversized.json")
 
-expect_contains "$response" "HTTP/1.1 413 Payload Too Large"
+expect_contains "$response" "HTTP/1.1 413"
 expect_contains "$response" '"error":"Request body too large"'
 
 summary

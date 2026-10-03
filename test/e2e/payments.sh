@@ -150,4 +150,74 @@ expect_contains "$response" "HTTP/1.1 200 OK"
 expect_contains "$response" "\"id\":$payment_id"
 expect_contains "$response" '"status":"pending"'
 
+# A state that does not exist is refused instead of answering with an empty
+# list, which would look exactly like "there is no payment in that state".
+example "rejects an unknown status filter"
+response=$(curl -s -i \
+  "$base_url/payments?status=failed")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "status must be one of:"
+
+# The two actions are exclusive. A cancelled payment is not "pending" anymore,
+# so it cannot be confirmed: the same rule as repeating an action, seen from the
+# other side.
+example "refuses to confirm a payment that was cancelled"
+created=$(curl -s -i \
+  -X POST \
+  "$base_url/payments" \
+  -H "Content-Type: application/json" \
+  -d "{\"amount\":\"42.00\"}")
+payment_id=$(extract_id "$created")
+
+curl -s -i \
+  -X POST \
+  "$base_url/payments/$payment_id/cancel" > /dev/null
+
+response=$(curl -s -i \
+  -X POST \
+  "$base_url/payments/$payment_id/confirm")
+
+expect_contains "$response" "HTTP/1.1 409 Conflict"
+expect_contains "$response" '"error":"A payment with status cancelled cannot be confirmed"'
+
+# Two clients confirming the same payment at the same time. The transition is a
+# single UPDATE that only matches a "pending" row, so exactly one of them can
+# win: the other changes nothing and answers 409. Reading the state first and
+# writing it afterwards would let both read "pending" and both confirm.
+example "lets only one of two concurrent confirms win"
+created=$(curl -s -i \
+  -X POST \
+  "$base_url/payments" \
+  -H "Content-Type: application/json" \
+  -d "{\"amount\":\"31.00\"}")
+payment_id=$(extract_id "$created")
+
+# `-w` prints the status code and nothing else, and the `&` puts both requests
+# in the background so they really are in flight together.
+curl -s -o /dev/null -w '%{http_code}' \
+  -X POST "$base_url/payments/$payment_id/confirm" > "$suite_dir/first" &
+curl -s -o /dev/null -w '%{http_code}' \
+  -X POST "$base_url/payments/$payment_id/confirm" > "$suite_dir/second" &
+wait
+
+first_code=$(cat "$suite_dir/first")
+second_code=$(cat "$suite_dir/second")
+
+if [ "$first_code" = "200" ] && [ "$second_code" = "409" ]; then
+  :
+elif [ "$first_code" = "409" ] && [ "$second_code" = "200" ]; then
+  :
+else
+  fail_expectation "expected one 200 and one 409, but got: $first_code and $second_code"
+fi
+
+# Whichever one won, the payment ended in a single state - never in both and
+# never in neither.
+response=$(curl -s -i \
+  "$base_url/payments/$payment_id")
+
+expect_contains "$response" "HTTP/1.1 200 OK"
+expect_contains "$response" '"status":"paid"'
+
 summary

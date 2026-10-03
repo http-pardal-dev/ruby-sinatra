@@ -150,4 +150,41 @@ response=$(curl -s -i \
 expect_contains "$response" "HTTP/1.1 400 Bad Request"
 expect_contains "$response" "has already been taken"
 
+# A field the server decides cannot be set by the client. `id` is refused like
+# any other unknown field, which is what keeps a client from choosing its own id.
+example "rejects an attempt to set the id"
+response=$(curl -s -i \
+  -X POST \
+  "$base_url/users" \
+  -H "Content-Type: application/json" \
+  -d "{\"id\":999,\"name\":\"Ada Lovelace\",\"email\":\"ada-id-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\"}")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" '"error":"Unknown fields"'
+
+# An email longer than the mail standards allow is refused by the model.
+example "rejects an email that is too long"
+long_email="$(awk 'BEGIN { while (i++ < 250) printf "a" }')@example.com"
+response=$(curl -s -i \
+  -X POST \
+  "$base_url/users" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"Ada Lovelace\",\"email\":\"$long_email\",\"password\":\"secret123\",\"role\":\"user\"}")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" '"error":"Validation failed"'
+
+# A birthdate that is not a real date is refused instead of being read as "no
+# birthdate": ActiveRecord turns an unreadable date into nothing, and the
+# validation catches the raw value before that happens.
+example "rejects a birthdate that is not a real date"
+response=$(curl -s -i \
+  -X POST \
+  "$base_url/users" \
+  -H "Content-Type: application/json" \
+  -d "{\"name\":\"Ada Lovelace\",\"email\":\"ada-birth-$(unique_id)@example.com\",\"password\":\"secret123\",\"role\":\"user\",\"birthdate\":\"2000-13-40\"}")
+
+expect_contains "$response" "HTTP/1.1 400 Bad Request"
+expect_contains "$response" "must be a valid date"
+
 summary

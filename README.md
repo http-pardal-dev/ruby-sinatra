@@ -289,12 +289,17 @@ understood on its own.
 
 - Ruby >= 3.2
 - Bundler
+- A POSIX shell (`sh`) — on Windows, Git Bash
+- `curl`, used by `bin/test` and by the checks in `bin/snapshot` and `bin/reset`
 
 ### Installation
 
 ```bash
 bundle install
 ```
+
+or, equivalently, `bin/setup`, which also prepares the databases and takes the
+first snapshot.
 
 ### Configuration
 
@@ -611,34 +616,79 @@ Each environment has a file in `config/environment/`, loaded by
 `config/environment.rb` according to `APP_ENV`:
 
 - `development.rb` — SQL logs in the terminal and request logging enabled;
-- `test.rb` — SQL logs silenced and request logging disabled.
+- `test.rb` — SQL logs silenced and request logging disabled;
+- `production.rb` — silenced, like the test one, for a quiet run.
+
+An unknown name stops the boot before anything else is loaded.
+
+### Startup checks (`config/checks.rb`)
+
+Three mistakes are ordinary enough to deserve their own message instead of a
+stack trace from the middle of a request:
+
+| Situation | Message |
+| --- | --- |
+| the database of the environment does not exist | created by `bin/setup` |
+| a migration in `db/migrate` was never applied | applied by `bin/setup` |
+| `APP_ENV` is not one of the three | the list of the ones the server knows |
+
+The checks are skipped under Rake, which is what lets `rake db:migrate` run on
+the database the checks complain about — running the fix must not require the
+problem to be gone first.
 
 The database used also depends on `APP_ENV`:
 
 - `development` → `storage/development.sqlite3`;
-- `test` → `storage/test.sqlite3`.
+- `test` → `storage/test.sqlite3`;
+- `production` → `storage/production.sqlite3`.
 
 ## Tests
 
-The tests are shell scripts that live in `test/` and run in the `test`
-environment:
+There are two suites, for two different reasons.
+
+### Unit and request specs (`spec/`)
+
+RSpec, against the models and through Rack (no server):
+
+```bash
+bundle exec rspec
+```
+
+- `spec/models/` — what each model accepts and refuses;
+- `spec/requests/` — the HTTP contract of each route: status codes, response
+  shapes and headers;
+- `spec/support/` — the JSON helpers and the shared examples the request specs
+  use.
+
+They run in the `test` environment and clean the tables between examples, so one
+example never sees the data of another.
+
+### End-to-end tests (`bin/test`)
+
+Shell examples that talk to a real server with `curl`:
 
 ```bash
 bin/test
 ```
 
-The command starts a real server, waits until it answers, runs the examples
-and stops the server at the end. Port 9292 must be free, so `bin/start` has to
-be stopped first.
+The command rebuilds the test database, starts a server on port `9393`, waits
+until it answers, runs the examples and stops the server.
 
-- `test/e2e/` holds the end-to-end examples (users, products and payments):
-  each one sends its own requests with `curl` to the server, with the whole
-  command written out;
-- `test/support.sh` holds the assertions shared by the examples: every example
-  is reported as `ok` or `FAIL`, and each file finishes with the total of
-  `N examples, M failures`;
-- the data of the suite lives in `storage/test.sqlite3`, separate from the
-  development data.
+- `test/e2e/protocol.sh` — the HTTP contract itself: unknown route, unsupported
+  method, body that is not JSON, unknown field, malformed id, oversized body;
+- `test/e2e/users.sh`, `products.sh`, `payments.sh` — what each resource does,
+  including two confirms racing over the same payment;
+- `test/support.sh` — the assertions shared by the examples: every example is
+  reported as `ok` or `FAIL`, and each file finishes with the total of
+  `N examples, M failures`.
+
+The examples reach the server through `E2E_BASE_URL`, which `bin/test` exports.
+Running a file on its own, against a server started by hand, is then a matter of
+pointing that variable at it:
+
+```bash
+E2E_BASE_URL=http://127.0.0.1:9292 sh test/e2e/products.sh
+```
 
 ## Lint (RuboCop)
 
@@ -667,10 +717,13 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 │   └── help                # shows the commands
 ├── config/
 │   ├── boot.rb             # boot of the application: Bundler and gems
+│   ├── checks.rb           # startup checks (database, migrations)
 │   ├── environment.rb      # loads the application and settings
+│   ├── puma.rb             # server: bind address and port
 │   └── environment/
 │       ├── development.rb  # development settings
-│       └── test.rb         # test settings
+│       ├── test.rb         # test settings
+│       └── production.rb   # production settings
 ├── data/
 │   └── database.yml        # SQLite connection per environment
 ├── db/
@@ -679,17 +732,24 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 ├── errors/
 │   └── errors.rb           # error handling (JSON)
 ├── helpers/
-│   └── json.rb             # JSON helpers (json and json_body)
+│   ├── json.rb             # JSON in and out (json, json_body) + body limit
+│   ├── records.rb          # find_or_404, restrict_attributes, persist_or_halt
+│   └── params.rb           # validation of page, limit, sort and filters
 ├── models/
 │   ├── user.rb             # User model (users)
 │   ├── product.rb          # Product model (products)
-│   └── payment.rb          # Payment model (payments) + states
+│   └── payment.rb          # Payment model (payments) + states + transition
 ├── routes/
 │   ├── users.rb            # Users routes (CRUD and fundamentals)
 │   ├── products.rb         # Products routes (queries)
 │   └── payments.rb         # Payments routes (lifecycle)
+├── spec/                   # unit and request specs (RSpec)
+│   ├── models/
+│   ├── requests/
+│   └── support/
 ├── test/
 │   ├── e2e/                # end-to-end examples (curl against the server)
+│   │   ├── protocol.sh     # routes, methods and input
 │   │   ├── users.sh        # users (CRUD and fundamentals)
 │   │   ├── products.sh     # products (queries)
 │   │   └── payments.sh     # payments (lifecycle)

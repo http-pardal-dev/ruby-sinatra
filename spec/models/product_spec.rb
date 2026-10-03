@@ -41,4 +41,22 @@ RSpec.describe Product do
   it "accepts a zero price" do
     expect(build_product(price: "0")).to be_valid
   end
+
+  it "rejects a price above the column capacity" do
+    product = build_product(price: "100000000")
+
+    expect(product).not_to be_valid
+    expect(product.errors[:price]).not_to be_empty
+  end
+
+  it "accepts the highest storable price" do
+    expect(build_product(price: "99999999.99")).to be_valid
+  end
+
+  it "exposes only the public attributes in JSON" do
+    product = build_product
+    product.save!
+
+    expect(product.as_json.keys).to match_array(Product::PUBLIC_ATTRIBUTES)
+  end
 end

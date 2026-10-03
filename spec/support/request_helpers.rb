@@ -23,6 +23,12 @@ module RequestHelpers
   def json_response
     JSON.parse(last_response.body)
   end
+
+  # Full response dump for debugging a failing example: status, headers and
+  # body on a single inspectable line.
+  def dump_response
+    "status=#{last_response.status} headers=#{last_response.headers.inspect} body=#{last_response.body}"
+  end
 end
 
 RSpec.configure do |config|

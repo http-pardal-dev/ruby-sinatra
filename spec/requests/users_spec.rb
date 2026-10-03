@@ -54,9 +54,13 @@ RSpec.describe "Users requests", type: :request do
   it "PUT /users/:id updates a user" do
     user = create_user
 
-    put_json "/users/#{user["id"]}", { "name" => "Ada King", "role" => "admin" }
+    put_json "/users/#{user["id"]}", {
+      "name" => "Ada King",
+      "email" => user["email"],
+      "role" => "admin"
+    }
 
-    expect(last_response.status).to eq(200)
+    expect(last_response.status).to eq(200), dump_response
     expect(json_response["user"]["name"]).to eq("Ada King")
     expect(json_response["user"]["role"]).to eq("admin")
   end
@@ -78,10 +82,12 @@ RSpec.describe "Users requests", type: :request do
     expect(last_response.status).to eq(204)
   end
 
+  # 999999 is a well formed id that no record can have here (ids start at 1),
+  # so the address is right and only the record is missing: that is a 404.
   it "GET /users/:id returns 404 for a user that does not exist" do
     get "/users/999999"
 
-    expect(last_response.status).to eq(404)
+    expect(last_response.status).to eq(404), dump_response
     expect(json_response["error"]).to eq("User not found")
   end
 
@@ -98,5 +104,57 @@ RSpec.describe "Users requests", type: :request do
 
     expect(last_response.status).to eq(400)
     expect(json_response["error"]).to eq("Validation failed")
+  end
+
+  it "POST /users answers 409 when the email loses a uniqueness race" do
+    allow_any_instance_of(User).to receive(:save!).and_raise(ActiveRecord::RecordNotUnique.new("unique"))
+    post_json "/users", user_body
+
+    expect(last_response.status).to eq(409)
+    expect(json_response["error"]).to eq("User already exists")
+  end
+
+  it "GET /users/abc returns 400 for an invalid id" do
+    get "/users/abc"
+
+    expect(last_response.status).to eq(400)
+    expect(json_response["error"]).to eq("Invalid id")
+  end
+
+  it "POST /users normalizes the email" do
+    post_json "/users", user_body("email" => "  Ada@Example.COM  ")
+
+    expect(last_response.status).to eq(201)
+    expect(json_response["user"]["email"]).to eq("ada@example.com")
+  end
+
+  it "PUT /users/:id requires the full resource" do
+    user = create_user
+
+    put_json "/users/#{user["id"]}", { "name" => "Ada King" }
+
+    expect(last_response.status).to eq(400)
+    expect(json_response["error"]).to eq("Validation failed")
+  end
+
+  it "PUT /users/:id replaces the resource" do
+    payload = create_user
+    user_id = payload["id"]
+    email = payload["email"]
+
+    put_json "/users/#{user_id}", { "name" => "Ada King", "email" => email, "role" => "admin" }
+
+    expect(last_response.status).to eq(200)
+    expect(json_response["user"]["name"]).to eq("Ada King")
+    expect(json_response["user"]["role"]).to eq("admin")
+  end
+
+  it_behaves_like "a hardened JSON endpoint" do
+    let(:path) { "/users" }
+    let(:valid_body) { user_body("email" => "hardened@example.com") }
+
+    def request(body)
+      post_json "/users", body
+    end
   end
 end

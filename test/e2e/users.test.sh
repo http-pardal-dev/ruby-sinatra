@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# users - end-to-end examples of users (CRUD and HTTP fundamentals).
+# users.test.sh - end-to-end examples of users (CRUD and HTTP fundamentals).
 #
 # Every example sends its own requests with curl to the real server started by
 # bin/test. The whole command is written out in each example on purpose: the

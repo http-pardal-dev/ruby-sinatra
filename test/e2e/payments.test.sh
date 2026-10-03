@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# payments - end-to-end examples of payments (lifecycle).
+# payments.test.sh - end-to-end examples of payments (lifecycle).
 #
 # Every example sends its own requests with curl to the real server started by
 # bin/test. The whole command is written out in each example on purpose: the

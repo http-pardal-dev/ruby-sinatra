@@ -150,9 +150,11 @@ printf '    Server ready.\n'
 
 step "Running the examples (test/e2e)"
 
+# Every example file ends in `.test.sh`, which is what tells a test from a
+# script: `support.sh` (the assertions) is sourced by them, never run on its own.
 run_status=0
 for name in protocol users products payments; do
-  if ! sh "test/e2e/$name.sh"; then
+  if ! sh "test/e2e/$name.test.sh"; then
     run_status=1
   fi
 done

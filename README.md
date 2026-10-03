@@ -646,22 +646,28 @@ The database used also depends on `APP_ENV`:
 
 There are two suites, for two different reasons.
 
-### Unit and request specs (`spec/`)
+### Unit and integration specs (`spec/`)
 
-RSpec, against the models and through Rack (no server):
+RSpec, split by what each example exercises:
 
 ```bash
 bundle exec rspec
 ```
 
-- `spec/models/` — what each model accepts and refuses;
-- `spec/requests/` — the HTTP contract of each route: status codes, response
-  shapes and headers;
-- `spec/support/` — the JSON helpers and the shared examples the request specs
-  use.
+| Folder | What an example there does |
+| --- | --- |
+| `spec/unit/` | exercises one model on its own: what it accepts and refuses |
+| `spec/integration/` | exercises the routes of a resource through Rack: status codes, response shapes and headers |
+| `spec/support/` | the JSON helpers and the shared examples both kinds use |
+
+```bash
+bundle exec rspec spec/unit                     # only the models
+bundle exec rspec spec/integration/payments_spec.rb   # only one file
+```
 
 They run in the `test` environment and clean the tables between examples, so one
-example never sees the data of another.
+example never sees the data of another. The integration specs go through Rack
+(Rack::Test), without starting a server.
 
 ### End-to-end tests (`bin/test`)
 
@@ -671,13 +677,18 @@ Shell examples that talk to a real server with `curl`:
 bin/test
 ```
 
+Every example file ends in `.test.sh`, which is what tells a test from a script:
+`test/support.sh` holds the assertions they share and is sourced by them, never
+run on its own.
+
 The command rebuilds the test database, starts a server on port `9393`, waits
 until it answers, runs the examples and stops the server.
 
-- `test/e2e/protocol.sh` — the HTTP contract itself: unknown route, unsupported
-  method, body that is not JSON, unknown field, malformed id, oversized body;
-- `test/e2e/users.sh`, `products.sh`, `payments.sh` — what each resource does,
-  including two confirms racing over the same payment;
+- `test/e2e/protocol.test.sh` — the HTTP contract itself: unknown route,
+  unsupported method, body that is not JSON, unknown field, malformed id,
+  oversized body;
+- `test/e2e/users.test.sh`, `products.test.sh`, `payments.test.sh` — what each
+  resource does, including two confirms racing over the same payment;
 - `test/support.sh` — the assertions shared by the examples: every example is
   reported as `ok` or `FAIL`, and each file finishes with the total of
   `N examples, M failures`.
@@ -687,7 +698,7 @@ Running a file on its own, against a server started by hand, is then a matter of
 pointing that variable at it:
 
 ```bash
-E2E_BASE_URL=http://127.0.0.1:9292 sh test/e2e/products.sh
+E2E_BASE_URL=http://127.0.0.1:9292 sh test/e2e/products.test.sh
 ```
 
 ## Lint (RuboCop)
@@ -743,16 +754,23 @@ uses. `rake lint:autocorrect` applies the safe corrections.
 │   ├── users.rb            # Users routes (CRUD and fundamentals)
 │   ├── products.rb         # Products routes (queries)
 │   └── payments.rb         # Payments routes (lifecycle)
-├── spec/                   # unit and request specs (RSpec)
-│   ├── models/
-│   ├── requests/
-│   └── support/
+├── spec/                   # specs (RSpec)
+│   ├── unit/               # one model at a time
+│   │   ├── user_spec.rb
+│   │   ├── product_spec.rb
+│   │   └── payment_spec.rb
+│   ├── integration/        # the routes of a resource, through Rack
+│   │   ├── users_spec.rb
+│   │   ├── products_spec.rb
+│   │   ├── payments_spec.rb
+│   │   └── errors_spec.rb
+│   └── support/            # helpers shared by the specs
 ├── test/
 │   ├── e2e/                # end-to-end examples (curl against the server)
-│   │   ├── protocol.sh     # routes, methods and input
-│   │   ├── users.sh        # users (CRUD and fundamentals)
-│   │   ├── products.sh     # products (queries)
-│   │   └── payments.sh     # payments (lifecycle)
+│   │   ├── protocol.test.sh  # routes, methods and input
+│   │   ├── users.test.sh     # users (CRUD and fundamentals)
+│   │   ├── products.test.sh  # products (queries)
+│   │   └── payments.test.sh  # payments (lifecycle)
 │   └── support.sh          # assertions shared by the examples
 ├── storage/                # database files (generated)
 ├── .rubocop.yml            # rules of the lint task

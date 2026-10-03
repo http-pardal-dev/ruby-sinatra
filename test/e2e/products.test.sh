@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# products - end-to-end examples of products (queries).
+# products.test.sh - end-to-end examples of products (queries).
 #
 # Every example sends its own requests with curl to the real server started by
 # bin/test. The whole command is written out in each example on purpose: the

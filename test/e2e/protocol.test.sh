@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# protocol - end-to-end examples of the HTTP contract itself.
+# protocol.test.sh - end-to-end examples of the HTTP contract itself.
 #
 # The other examples (users, products, payments) exercise what each resource
 # does. This one exercises what every request gets before any resource is

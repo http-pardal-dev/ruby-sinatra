@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-# RSpec infrastructure for unit (models) and request (routes) specs.
+# RSpec infrastructure, split by what the example exercises:
+#
+#   spec/unit/         one model, on its own
+#   spec/integration/  the routes of a resource, through Rack
 #
 # The specs run in the `test` environment, against `storage/test.sqlite3`
 # (see config/environment.rb and data/database.yml). `bin/setup` prepares that
@@ -8,9 +11,9 @@
 # `bundle exec rspec` without it fails fast with a boot error that points to
 # `bin/setup`.
 #
-# Request specs use Rack::Test, which exercises the routes through Rack without
-# starting a server. Model specs use the same database connection, cleaned
-# between examples so each example sees an empty database.
+# Both kinds use the same database connection, cleaned between examples so each
+# example sees an empty database. The integration specs go through Rack with
+# Rack::Test, without starting a server.
 
 require "rspec"
 
@@ -27,8 +30,9 @@ require_relative "support/hardened_endpoint"
 RSpec.configure do |config|
   config.include Rack::Test::Methods
 
-  # Rack::Test sends every request to the Sinatra application.
-  config.define_derived_metadata(file_path: %r{spec/requests/}) do |metadata|
+  # The integration specs go through Rack: Rack::Test sends every request to the
+  # Sinatra application. The unit specs do not, so they do not need the type.
+  config.define_derived_metadata(file_path: %r{spec/integration/}) do |metadata|
     metadata[:type] = :request
   end
 

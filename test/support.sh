@@ -1,9 +1,12 @@
-# Assertions shared by the end-to-end examples (test/e2e/*.sh).
+# Assertions shared by the end-to-end examples (test/e2e/*.test.sh).
 #
 # This file is sourced, never executed: the examples call the helpers below to
 # report each example as `ok` or `FAIL`, the same way the documentation format
 # of a test runner does. Everything here is POSIX shell; the requests
 # themselves stay written out in each example.
+#
+# The name is `support.sh` and not `support.test.sh` on purpose: this is not a
+# test, it is what the tests share.
 #
 # Variables are global because POSIX shell has no local: the names below are
 # never used by the examples.

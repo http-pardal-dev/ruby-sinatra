@@ -25,6 +25,13 @@ group :development, :test do
 
   gem "rake", "~> 13.0"
 
+  # Request specs (see spec/). Rack::Test exercises the routes through Rack,
+  # without a running server.
+  gem "rack-test", "~> 2.2", require: false
+
+  # Unit and request specs (see spec/).
+  gem "rspec", "~> 3.13", require: false
+
   # Code checker of the `lint` task (see Rakefile and .rubocop.yml).
   gem "rubocop", "~> 1.91", require: false
 end

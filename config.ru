@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
 # Entry point used by Rack/Puma.
-require_relative "config/environment"
+#
+# A startup problem (see config/checks.rb) is a mistake by the person using the
+# server, not a bug in it: the message says what is wrong and what to run, so it
+# is printed on its own. A Ruby stack trace on top of it would only bury it.
+begin
+  require_relative "config/environment"
+rescue Checks::Error => e
+  warn "\n#{e.message}\n"
+  exit 1
+end
 
 run App

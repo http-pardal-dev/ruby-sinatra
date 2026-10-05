@@ -5,6 +5,12 @@
 #   spec/unit/         one model, on its own
 #   spec/integration/  the routes of a resource, through Rack
 #
+# What the specs reuse lives in two other places, because the two are not the
+# same thing: spec/support/helpers/ holds the tools the specs use (sending a
+# JSON body, reading the answer), and spec/shared/ holds the behaviour more than
+# one spec asserts (a hardened endpoint answering the same four ways for every
+# resource).
+#
 # The specs run in the `test` environment, against `storage/test.sqlite3`
 # (see config/environment.rb and data/database.yml). Prepare that database with
 # `APP_ENV=test bundle exec rake db:migrate`: the specs assume it exists with
@@ -24,8 +30,8 @@ ENV["APP_ENV"] = "test"
 
 require_relative "../config/environment"
 require "rack/test"
-require_relative "support/request_helpers"
-require_relative "support/hardened_endpoint"
+require_relative "support/helpers/request_helpers"
+require_relative "shared/hardened_json_endpoint"
 
 RSpec.configure do |config|
   config.include Rack::Test::Methods

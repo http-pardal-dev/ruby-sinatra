@@ -260,6 +260,10 @@ bundle exec rake lint:autocorrect
 ├── models/                 # the rules of each resource
 ├── routes/                 # the endpoints, one file per resource
 ├── spec/                   # RSpec
+│   ├── unit/               # one model on its own
+│   ├── integration/        # the routes through Rack
+│   ├── shared/             # behaviour several specs assert together
+│   └── support/helpers/    # the tools the specs use
 ├── storage/                # the database files (generated)
 ├── .rubocop.yml
 ├── config.ru

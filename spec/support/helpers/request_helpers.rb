@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
-# Request helpers shared by every request spec: JSON bodies in, parsed
-# responses out.
+# Tools the request specs use: JSON bodies in, parsed responses out.
+#
+# This is tooling, not behaviour: nothing here asserts anything, it only makes
+# an example shorter. The behaviour several specs assert together lives in
+# spec/shared/.
 module RequestHelpers
   # Sends a JSON body: the helper serializes the Hash and sets the
   # content-type, so each example shows only the data that matters.

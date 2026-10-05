@@ -39,7 +39,7 @@ helpers are wired during that boot; a request only travels through them.
 | `config/` | The boot, the startup initializers, the environment settings and the server configuration |
 | `db/migrate/` | The migrations that create the tables |
 | `data/database.yml` | The connection, per environment |
-| `spec/` | RSpec: models on their own, and routes through Rack |
+| `spec/shared/` | The behaviour several specs assert together: a hardened endpoint answers the same four ways for every resource |
 
 ## Decisions worth knowing
 

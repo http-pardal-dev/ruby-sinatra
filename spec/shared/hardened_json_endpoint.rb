@@ -1,8 +1,13 @@
 # frozen_string_literal: true
 
-# Shared examples for the hardening specs: given an endpoint that accepts a
+# Shared behaviour for the integration specs: given an endpoint that accepts a
 # JSON body, these examples pin down how the application treats bodies and
 # attributes that must never succeed silently.
+#
+# This is behaviour, not tooling: every resource has to answer the same four
+# ways, so the three integration specs assert it once, here, instead of writing
+# the same four examples three times. The tools the examples themselves use are
+# in spec/support/helpers/.
 #
 # The host spec provides `path` (the endpoint) and `valid_body` (a Hash the
 # endpoint accepts). `subject` is the response of sending `body` to the

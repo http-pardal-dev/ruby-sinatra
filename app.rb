@@ -4,10 +4,10 @@ require "sinatra/base"
 require "sinatra/activerecord"
 require "json"
 
-require_relative "errors/errors"
-require_relative "helpers/json"
-require_relative "helpers/records"
-require_relative "helpers/params"
+require_relative "lib/errors/errors"
+require_relative "app/helpers/json"
+require_relative "app/helpers/records"
+require_relative "app/helpers/params"
 
 # Modular-style Sinatra application.
 #
@@ -17,7 +17,8 @@ require_relative "helpers/params"
 #   - errors (404 and 500) also return JSON.
 #
 # Database access uses the sinatra-activerecord gem (ActiveRecord).
-# Routes live in routes/ (one file per resource) and the models (ActiveRecord) in models/.
+# Routes live in app/routes/ (one file per resource) and the models
+# (ActiveRecord) in app/models/.
 class App < Sinatra::Base
   configure do
     set :environment, APP_ENV
@@ -26,7 +27,7 @@ class App < Sinatra::Base
 
     # Record unhandled exceptions (500) in the error stream for every
     # environment, so they stay available for debugging. The client still
-    # receives a generic message (see errors/errors.rb).
+    # receives a generic message (see lib/errors/errors.rb).
     set :dump_errors, true
 
     # Default content-type for every response.
@@ -45,7 +46,7 @@ class App < Sinatra::Base
   helpers Helpers::Records
   helpers Helpers::Params
 
-  # Error handling (not_found and error) defined in errors/errors.rb.
+  # Error handling (not_found and error) defined in lib/errors/errors.rb.
   register Errors
 
   # Health check route: confirms the server is up.
@@ -54,15 +55,15 @@ class App < Sinatra::Base
   end
 end
 
-# Routes for each resource, one file per resource in routes/:
+# Routes for each resource, one file per resource in app/routes/:
 #   - routes/users.rb    -> Users    (CRUD and fundamentals)
 #   - routes/products.rb -> Products (queries)
 #   - routes/payments.rb -> Payments (lifecycle)
-require_relative "routes/users"
-require_relative "routes/products"
-require_relative "routes/payments"
+require_relative "app/routes/users"
+require_relative "app/routes/products"
+require_relative "app/routes/payments"
 
-# The 405 answer (see errors/errors.rb) matches the request path against the
+# The 405 answer (see lib/errors/errors.rb) matches the request path against the
 # route patterns of the application, so the table is filled now that every
 # route file has loaded.
 Errors.snapshot_routes!(App)

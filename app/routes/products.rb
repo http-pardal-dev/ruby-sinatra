@@ -6,7 +6,7 @@
 # Concepts: query parameters, filters, sorting, pagination and partial update.
 #
 # Everything sent in the query string is read from `params` and validated
-# with the helpers of helpers/params.rb: page and limit must be positive
+# with the helpers of app/helpers/params.rb: page and limit must be positive
 # integers (limit at most MAX_LIMIT), sort must be a known column with an
 # optional "-" prefix, and the filters must have the expected types. The
 # request body is filtered with `restrict_attributes`, records are found with

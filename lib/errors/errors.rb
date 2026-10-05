@@ -6,7 +6,7 @@
 # Error responses are JSON too.
 #
 # The application answers unexpected input with 4xx before ActiveRecord is
-# involved (see helpers/records.rb and helpers/params.rb), so reaching these
+# involved (see app/helpers/records.rb and app/helpers/params.rb), so reaching these
 # handlers with a 500 means a bug. Two races are handled as responses anyway:
 # a uniqueness conflict lost between the validation and the insert answers
 # 409, and an unknown attribute (a column the allowlist missed) answers 400.
@@ -15,8 +15,8 @@ module Errors
   # matches the request path against them, the same way Sinatra dispatches a
   # route. Mustermann has no `match?`: `params` returns nil when the path does
   # not fit. The table is filled by app.rb after every route file has loaded
-  # (see Errors.snapshot_routes!), because errors/errors.rb loads before
-  # routes/ and the handler itself cannot reach the class routes.
+  # (see Errors.snapshot_routes!), because lib/errors/errors.rb loads before
+  # app/routes/ and the handler itself cannot reach the class routes.
   #
   # It is a module attribute and not a constant because it is written after this
   # file is loaded: a frozen constant would be the wrong shape for a table that

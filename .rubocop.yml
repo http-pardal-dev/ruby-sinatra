@@ -47,14 +47,14 @@ Metrics/BlockLength:
 # a method name is not a problem here.
 Naming/VariableNumber:
   Exclude:
-    - "helpers/records.rb"
+    - "app/helpers/records.rb"
 
 # `Payment.transition!` returns whether the transition happened, but it is a
 # command that performs it and may fail, not a question about the record, so it
 # keeps the `!` instead of reading as a predicate.
 Naming/PredicateMethod:
   Exclude:
-    - "models/payment.rb"
+    - "app/models/payment.rb"
 
 # A Gemfile has no frozen string literal comment, like every Gemfile.
 Style/FrozenStringLiteralComment:

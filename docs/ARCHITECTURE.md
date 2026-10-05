@@ -14,13 +14,13 @@ easier to place:
 ```text
 config.ru
   └─ loads config/environment.rb
-        ├─ config/boot.rb          the language runtime (Bundler, gems)
-        ├─ config/initializers.rb  refuses to start on a broken setup
-        └─ app.rb                  the Sinatra application
-              ├─ errors/           what to answer when something fails
-              ├─ helpers/          behaviour shared by the routes
-              ├─ routes/           one file per resource
-              └─ models/           the rules and storage of each resource
+        ├─ config/boot.rb           the language runtime (Bundler, gems)
+        ├─ config/initializers.rb   refuses to start on a broken setup
+        └─ app.rb                   the Sinatra application
+              ├─ lib/errors/        what to answer when something fails
+              ├─ app/helpers/       behaviour shared by the routes
+              ├─ app/routes/        one file per resource
+              └─ app/models/        the rules and storage of each resource
                     └─ data/database.yml + storage/*.sqlite3
 ```
 
@@ -32,10 +32,10 @@ helpers are wired during that boot; a request only travels through them.
 | Folder or file | What it is for |
 | --- | --- |
 | `app.rb` | The Sinatra application: default settings, which helpers exist, which routes are loaded |
-| `routes/` | One file per resource. Each route says what it does, in order, without hiding it |
-| `models/` | The rules of each resource: validations, the public representation, the payment lifecycle |
-| `helpers/` | The repetition taken out of the routes: JSON, finding and saving records, validating parameters |
-| `errors/` | The answers for `404`, `405` and `500`, all in JSON |
+| `app/routes/` | One file per resource. Each route says what it does, in order, without hiding it |
+| `app/models/` | The rules of each resource: validations, the public representation, the payment lifecycle |
+| `app/helpers/` | The repetition taken out of the routes: JSON, finding and saving records, validating parameters |
+| `lib/errors/` | The answers for `404`, `405` and `500`, all in JSON |
 | `config/` | The boot, the startup initializers, the environment settings and the server configuration |
 | `db/migrate/` | The migrations that create the tables |
 | `data/database.yml` | The connection, per environment |

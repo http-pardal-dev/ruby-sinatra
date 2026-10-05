@@ -7,7 +7,7 @@
 require_relative "boot"
 
 require "dotenv/load"
-require_relative "checks"
+require_relative "initializers"
 
 # Runtime environment. The server knows exactly three of them, and each one has
 # its own settings in config/environment/<name>.rb and its own database in
@@ -21,7 +21,7 @@ ENV["APP_ENV"] ||= "development"
 # (or worse, the wrong one) and fail much later with a message that does not
 # point at the name that is actually wrong.
 unless ENVIRONMENTS.include?(ENV["APP_ENV"])
-  raise Checks::Error, <<~MESSAGE
+  raise Database::Error, <<~MESSAGE
     APP_ENV is #{ENV["APP_ENV"].inspect}, but this server only knows: #{ENVIRONMENTS.join(", ")}.
     Fix it in the .env file (see .env.example) or export APP_ENV=<name> before starting the server.
   MESSAGE
@@ -37,7 +37,11 @@ require_relative "../models/payment"
 # Settings specific to the current environment.
 require_relative "environment/#{APP_ENV}"
 
-# The database has to be ready before the first request. Rake is excluded on
-# purpose: it loads this file to run `db:migrate`, which is one of the commands
-# the checks point to (see config/checks.rb).
-Checks.verify! unless defined?(Rake)
+# The database has to be ready before the first request, so each initializer
+# runs here and stops the boot at the first problem it finds. Rake is excluded on
+# purpose: it loads this file to run `db:migrate`, which is exactly what two of
+# them point to, so failing during the task would make the fix impossible.
+unless defined?(Rake)
+  Database.verify!
+  Migrations.verify!
+end

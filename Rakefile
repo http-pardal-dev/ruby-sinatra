@@ -6,9 +6,9 @@
 # sinatra-activerecord tasks, such as `rake db:migrate` and `rake db:schema:dump`.
 #
 # `require "rake"` comes first on purpose: config/environment.rb skips the
-# startup checks when Rake is already loaded, and it can only tell that if Rake
-# was required before it. That is what lets `rake db:migrate` run on a database
-# that does not exist yet - the very thing the checks complain about.
+# startup initializers when Rake is already loaded, and it can only tell that if
+# Rake was required before it. That is what lets `rake db:migrate` run on a
+# database that does not exist yet - the very thing they complain about.
 require "rake"
 
 require_relative "config/environment"

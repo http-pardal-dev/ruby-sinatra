@@ -240,8 +240,9 @@ bundle exec rake lint:autocorrect
 ├── app.rb                  # the Sinatra application: settings, helpers, routes
 ├── config/
 │   ├── boot.rb             # Bundler and the gems
-│   ├── checks.rb           # startup checks: database and migrations
 │   ├── environment.rb      # loads the application and the settings
+│   ├── initializers.rb     # startup initializers, one check each
+│   ├── initializers/       # database and migrations
 │   ├── puma.rb             # the address and the port
 │   └── environment/        # one file per environment
 ├── data/

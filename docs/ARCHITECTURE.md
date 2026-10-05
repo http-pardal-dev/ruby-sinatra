@@ -15,7 +15,7 @@ easier to place:
 config.ru
   └─ loads config/environment.rb
         ├─ config/boot.rb          the language runtime (Bundler, gems)
-        ├─ config/checks.rb        refuses to start on a broken setup
+        ├─ config/initializers.rb  refuses to start on a broken setup
         └─ app.rb                  the Sinatra application
               ├─ errors/           what to answer when something fails
               ├─ helpers/          behaviour shared by the routes
@@ -36,7 +36,7 @@ helpers are wired during that boot; a request only travels through them.
 | `models/` | The rules of each resource: validations, the public representation, the payment lifecycle |
 | `helpers/` | The repetition taken out of the routes: JSON, finding and saving records, validating parameters |
 | `errors/` | The answers for `404`, `405` and `500`, all in JSON |
-| `config/` | The boot, the checks, the environment settings and the server configuration |
+| `config/` | The boot, the startup initializers, the environment settings and the server configuration |
 | `db/migrate/` | The migrations that create the tables |
 | `data/database.yml` | The connection, per environment |
 | `spec/` | RSpec: models on their own, and routes through Rack |
@@ -86,15 +86,17 @@ answer, whatever happened. A `500` carries a generic message and keeps the
 details in the log, so an unexpected failure cannot leak the inside of the
 server.
 
-**The startup checks exist because these mistakes are ordinary.** A typo in
+**The startup initializers exist because these mistakes are ordinary.** A typo in
 `APP_ENV`, a database that was never created, a migration that was never run —
 each used to surface as an error in the middle of the first request, far from the
 name that is actually wrong. They now stop the boot with a message that says what
 to run.
 
-The checks are skipped under Rake, and that is what allows `rake db:migrate` to
-run on the very database the checks complain about. The fix must not require the
-problem to be gone first.
+Each initializer is one file under `config/initializers/`, carrying its own error,
+so the reason a server refuses to start is something you can open and read. They
+are skipped under Rake, and that is what allows `rake db:migrate` to run on the
+very database they complain about. The fix must not require the problem to be gone
+first.
 
 ## The three environments
 

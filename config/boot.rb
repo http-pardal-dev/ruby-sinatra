@@ -10,7 +10,7 @@
 ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../Gemfile", __dir__)
 
 # Absolute path of the project root. Every other configuration that needs a path
-# (data/database.yml, config/checks.rb) builds it from here, so none of them
+# (data/database.yml, config/initializers/) builds it from here, so none of them
 # depends on the folder the command happened to be started from.
 PROJECT_ROOT = File.expand_path("..", __dir__)
 

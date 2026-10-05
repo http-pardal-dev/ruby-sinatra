@@ -6,10 +6,10 @@
 #   spec/integration/  the routes of a resource, through Rack
 #
 # The specs run in the `test` environment, against `storage/test.sqlite3`
-# (see config/environment.rb and data/database.yml). `bin/setup` prepares that
-# database, so the specs assume it exists with the tables migrated: running
-# `bundle exec rspec` without it fails fast with a boot error that points to
-# `bin/setup`.
+# (see config/environment.rb and data/database.yml). Prepare that database with
+# `APP_ENV=test bundle exec rake db:migrate`: the specs assume it exists with
+# the tables migrated, and without it they fail fast with a boot error that says
+# what to run.
 #
 # Both kinds use the same database connection, cleaned between examples so each
 # example sees an empty database. The integration specs go through Rack with

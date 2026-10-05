@@ -41,16 +41,17 @@ module Checks
     File.expand_path(configured, PROJECT_ROOT)
   end
 
-  # The database of the current environment has to exist: it is created by
-  # `bin/setup`, which also runs the migrations. Without it every query would
-  # fail with "no such table", a long way from the actual mistake.
+  # The database of the current environment has to exist: it is created by the
+  # migrations (`bundle exec rake db:migrate`), which also create the tables.
+  # Without it every query would fail with "no such table", a long way from the
+  # actual mistake.
   def self.verify_database!
     file = database_file
     return if file.nil? || File.exist?(file)
 
     raise Error, <<~MESSAGE
       The #{ENV.fetch("APP_ENV", "development")} database does not exist: #{file}
-      It is created by the setup command: bin/setup
+      Create it and its tables with: bundle exec rake db:migrate
     MESSAGE
   end
 
@@ -64,7 +65,7 @@ module Checks
 
     raise Error, <<~MESSAGE
       The #{ENV.fetch("APP_ENV", "development")} database is missing #{pending.size} migration(s): #{pending.join(", ")}
-      They are applied by the setup command: bin/setup
+      They are applied by: bundle exec rake db:migrate
     MESSAGE
   end
 end

@@ -36,17 +36,19 @@ decision it makes is in a file you can open.
 
 ## Start here
 
-**1. Prepare the environment.** This installs the dependencies, creates the
-database and takes a first snapshot:
+**1. Prepare the environment.** This installs the dependencies and creates the
+database:
 
 ```bash
-bin/setup
+bundle install
+cp .env.example .env
+bundle exec rake db:migrate
 ```
 
 **2. Start the server:**
 
 ```bash
-bin/start
+bundle exec puma
 ```
 
 It listens on `http://127.0.0.1:9292` and runs in the foreground — `Ctrl+C`
@@ -74,126 +76,24 @@ curl http://127.0.0.1:9292/users
 
 That is the whole loop: prepare, start, send a request, read the answer.
 
-### If you are on Windows
-
-The commands are POSIX shell scripts. Run them from **Git Bash** (or any other
-POSIX shell), prefixing with `sh`:
-
-```bash
-sh bin/setup
-sh bin/start
-```
-
-`curl`, Ruby and Bundler have to be reachable from that shell as well.
-
 ### Requirements
 
 - Ruby >= 3.2
 - Bundler
-- A POSIX shell (`sh`) — Git Bash on Windows
-- `curl`, used by `bin/test`, `bin/snapshot` and `bin/reset`
+- `curl`, to talk to the server from a terminal
 
-## The commands
+## The server
 
-Seven scripts in `bin/`, all plain POSIX shell with no language runtime behind
-them, so they start instantly and each one explains itself:
-
-```bash
-bin/help          # lists every command
-bin/help setup    # the help of one command, same as bin/setup --help
-```
-
-| Command | What it does |
-| --- | --- |
-| `bin/setup` | Prepares the environment |
-| `bin/start` | Runs the server |
-| `bin/install` | Installs the dependencies |
-| `bin/snapshot` | Saves a restoration point |
-| `bin/reset` | Restores the snapshot |
-| `bin/test` | Runs the end-to-end tests |
-| `bin/help` | Shows the commands |
-
-Every one of them answers `0` on success, `1` when it fails while running, and
-`2` on invalid usage.
-
-### `bin/setup`
-
-Prepares everything the environment needs:
-
-1. checks the Ruby version the `Gemfile` asks for;
-2. installs the dependencies, when they are missing;
-3. creates `.env` from `.env.example`, if it does not exist yet;
-4. creates `storage/`, where the databases live;
-5. runs the migrations of the `development` and `test` databases;
-6. saves the first snapshot, if there is none yet.
-
-It is idempotent: running it again on an environment that is already ready changes
-nothing, which also makes it the way to recover a broken environment.
-
-| Flag | What it does |
-| --- | --- |
-| `--install` | Installs the dependencies even when they are already in place |
-| `--skip-install` | Neither checks nor installs them |
-
-The installation itself lives in `bin/install`, which is what `bin/setup` calls
-when something is missing. `bin/start` refuses to run without the dependencies
-and points back to `bin/setup`, instead of showing a Bundler error.
-
-### `bin/start`
-
-Runs the server with Puma, in the foreground. The address is `127.0.0.1` and the
+The server runs with Puma, in the foreground. The address is `127.0.0.1` and the
 port comes from `PORT`, defaulting to `9292`:
 
 ```bash
-PORT=3000 bin/start
+PORT=3000 bundle exec puma
 ```
 
-### `bin/install`
+It stops with `Ctrl+C`, which reaches Puma directly.
 
-Installs the dependencies declared in the `Gemfile`. It is the only command that
-knows *how* they are installed, so a fresh clone works without a separate
-`bundle install`.
-
-### `bin/snapshot` and `bin/reset`
-
-These two are what make the project safe to experiment in.
-
-**`bin/snapshot`** saves a copy of the whole environment — code, configuration and
-databases — into `.snapshot/`:
-
-```bash
-bin/snapshot
-```
-
-An existing snapshot is **not** replaced: it belongs to you, and replacing it
-silently would make `reset` take the environment back to a state you had already
-left behind. Use `--force` when replacing it is what you want.
-
-**`bin/reset`** brings the environment back to that snapshot:
-
-```bash
-bin/reset
-```
-
-- files that were **changed** are restored;
-- files that were **deleted** come back;
-- files and folders that were **created** are removed.
-
-Because it throws away whatever was done since, it lists the files it is about to
-remove and asks before doing it. A file created after the snapshot is often work
-nobody remembered making, which is why the list comes first.
-
-| Flag | What it does |
-| --- | --- |
-| `--dry-run` | Shows that list and changes nothing |
-| `--force` | Restores without asking — useful in a script |
-
-**Both require the server to be stopped.** While it runs, the SQLite files are
-open and can change in the middle of the copy, and the result would be a snapshot
-of a database that never existed. Both commands check the ports and refuse to run
-instead.
-
-### Console
+## Console
 
 IRB with the environment loaded:
 
@@ -285,8 +185,7 @@ cp .env.example .env
 | Variable | Default | What it decides |
 | --- | --- | --- |
 | `APP_ENV` | `development` | Which environment runs |
-| `PORT` | `9292` | The port `bin/start` uses |
-| `E2E_PORT` | `9393` | The port `bin/test` uses |
+| `PORT` | `9292` | The port the server answers on |
 
 **The environments** each have their own database and their own logging:
 
@@ -300,34 +199,21 @@ Any other value stops the boot with a message naming the three the server knows.
 A typo such as `dev` would otherwise pick a database that does not exist and fail
 much later, far from the name that is actually wrong.
 
-The two ports are deliberately different, so a `bin/start` left open can never
-answer the tests with the development database.
-
 **The database** is SQLite, configured in `data/database.yml`. Running the server
 without a ready database stops the boot with a message saying so, instead of
-failing on the first request.
-
-To prepare it by hand, without `bin/setup`:
+failing on the first request. To create it and its tables:
 
 ```bash
-bundle exec rake db:migrate          # the development database
-APP_ENV=test bundle exec rake db:migrate   # and the test one
+bundle exec rake db:migrate               # the development database
+APP_ENV=test bundle exec rake db:migrate  # and the test one, used by the specs
 ```
 
 ## Tests
-
-```bash
-bin/test
-```
-
-This rebuilds the test database, starts a server on port `9393`, waits until it
-answers, runs every example with `curl` and stops the server.
 
 | Suite | What it checks |
 | --- | --- |
 | `spec/unit/` | One model on its own: what it accepts and refuses |
 | `spec/integration/` | The routes through Rack: status codes, bodies and headers |
-| `test/e2e/` | A real server, with the method, URL, headers and body written out in each example |
 
 The specs run in-process and start no server:
 
@@ -337,8 +223,8 @@ bundle exec rspec spec/unit              # only the models
 bundle exec rspec spec/integration/payments_spec.rb
 ```
 
-Two levels answer two different questions: *"is this rule true?"* and *"does a real
-client see it?"*.
+They use the `test` environment, so that database has to exist first — see
+[Configuration](#configuration).
 
 To check the style of the code:
 
@@ -352,7 +238,6 @@ bundle exec rake lint:autocorrect
 ```text
 .
 ├── app.rb                  # the Sinatra application: settings, helpers, routes
-├── bin/                    # the commands (plain shell)
 ├── config/
 │   ├── boot.rb             # Bundler and the gems
 │   ├── checks.rb           # startup checks: database and migrations
@@ -374,7 +259,6 @@ bundle exec rake lint:autocorrect
 ├── models/                 # the rules of each resource
 ├── routes/                 # the endpoints, one file per resource
 ├── spec/                   # RSpec
-├── test/                   # end-to-end examples, with curl
 ├── storage/                # the database files (generated)
 ├── .rubocop.yml
 ├── config.ru
@@ -391,7 +275,7 @@ for and why the project is shaped this way.
 
 | Document | What it answers |
 | --- | --- |
-| This file | How to run it, and what the commands do |
+| This file | How to run it, and what it does |
 | [docs/FEATURES.md](docs/FEATURES.md) | What each resource does, field by field, and every rule that applies |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the project is put together, and the decisions behind it |
 | [docs/SECURITY.md](docs/SECURITY.md) | The missing authentication, what protects the server, and what it does with input |

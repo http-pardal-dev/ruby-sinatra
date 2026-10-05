@@ -40,8 +40,6 @@ helpers are wired during that boot; a request only travels through them.
 | `db/migrate/` | The migrations that create the tables |
 | `data/database.yml` | The connection, per environment |
 | `spec/` | RSpec: models on their own, and routes through Rack |
-| `test/e2e/` | Shell examples that talk to a real server with `curl` |
-| `bin/` | The commands: plain shell, no runtime behind them |
 
 ## Decisions worth knowing
 
@@ -98,11 +96,6 @@ The checks are skipped under Rake, and that is what allows `rake db:migrate` to
 run on the very database the checks complain about. The fix must not require the
 problem to be gone first.
 
-**The commands in `bin/` do not load Ruby.** They are POSIX shell and call the
-language only when a step really needs it (`bundle check`, `rake db:migrate`,
-`puma`). Starting the server costs what the server costs, and every command can
-explain itself with `--help` without a runtime.
-
 ## The three environments
 
 The environment is chosen with `APP_ENV` and decides the database and the
@@ -119,45 +112,19 @@ the boot before anything else is loaded, because a typo such as `dev` would
 otherwise pick a database that does not exist and fail much later, with a message
 that does not point at the name that is wrong.
 
-The development and end-to-end servers use different ports (`9292` and `9393`) so
-a `bin/start` left open can never answer the tests with the development
-database.
-
 ## How the tests are arranged
 
 Two suites, for two different reasons.
 
-**`spec/` — in process, no server.** `spec/unit/` exercises one model at a time
-(what it accepts and refuses); `spec/integration/` sends requests through Rack
-and checks status codes, bodies and headers. It is fast, and a failure points
-straight at the code.
+**`spec/unit/` — one model at a time.** What a model accepts and refuses,
+exercised on its own.
 
-**`test/e2e/` — a real server, with `curl`.** The examples are written out with
-the method, the URL, the headers and the body visible, with no helper hiding how
-a request is built. That is what makes them a check of the contract rather than of
-the code. `bin/test` rebuilds the test database, starts a server on `9393`, waits
-until it answers, runs every file and stops the server.
+**`spec/integration/` — the routes through Rack.** Requests go through
+Rack::Test and the answer is checked as status code, body and headers. It is
+fast, and a failure points straight at the code.
 
-Because the examples begin from an empty database every run, an example can
-never pass because of a record a previous run left behind.
-
-The two levels answer different questions: "is this rule true?" (`spec/`) and
-"does a real client see it?" (`test/e2e/`). `test/e2e/protocol.test.sh` covers
-the HTTP contract itself — unknown routes, unsupported methods, bodies that are
-not JSON, unknown fields, malformed ids, oversized bodies — so the behaviour that
-belongs to no single resource is still checked.
-
-## Snapshot and reset
-
-`.snapshot/` holds a copy of the whole environment — code, configuration and
-databases — taken by `bin/setup` and by `bin/snapshot`. `bin/reset` restores it.
-
-This is what makes the project safe to experiment in: change, delete or break any
-file and bring it back. `bin/reset` lists the files it is about to remove and
-asks first, because a file created after the snapshot is often work nobody
-remembered making.
-
-Both commands refuse to run while the server is answering on either port. While it
-runs, the SQLite files are open and can change in the middle of the copy, and the
-result would be a snapshot of a database that never existed.
+Both run in the `test` environment against `storage/test.sqlite3`, cleaned
+between examples so each one sees an empty database. Because the examples begin
+from an empty database, an example can never pass because of a record a previous
+example left behind.
 

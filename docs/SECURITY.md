@@ -19,8 +19,8 @@ your own machine. No other computer on the same network — and nothing on the
 internet, behind a router or a tunnel — can open a connection to it.
 
 That single line is the whole security model. It is configured in
-`config/puma.rb` and repeated where it is easy to miss: `bin/start` prints a
-warning, and `.env.example` says it next to `PORT`.
+`config/puma.rb` and repeated where it is easy to miss: `.env.example` says it
+next to `PORT`.
 
 **Do not change it to `0.0.0.0` or to any public address.** Do not run this
 server on a shared machine, on a public server, or behind a tunnel or a port

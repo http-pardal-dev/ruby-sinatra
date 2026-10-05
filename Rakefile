@@ -14,9 +14,9 @@ require "rake"
 require_relative "config/environment"
 require "sinatra/activerecord/rake"
 
-# Code checking. It stays a task of the language (Ruby) instead of a command of
-# `bin/`, because the checker is specific to the language: `rake lint` runs
-# RuboCop with the rules of .rubocop.yml.
+# Code checking. It stays a task of the language (Ruby) because the checker is
+# specific to the language: `rake lint` runs RuboCop with the rules of
+# .rubocop.yml.
 #
 # RuboCop belongs to the development dependencies, which may be left out
 # (`bundle install --without development`). The task still exists in that case
@@ -28,6 +28,6 @@ begin
 rescue LoadError
   desc "Checks the code with RuboCop (not installed)"
   task :lint do
-    abort "Error: RuboCop is not installed. Run bin/install to install the development dependencies."
+    abort "Error: RuboCop is not installed. Run bundle install to install the development dependencies."
   end
 end

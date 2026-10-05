@@ -11,13 +11,13 @@
 #
 # Do not replace it with 0.0.0.0 on a shared or public machine.
 
-# The port the server answers on. PORT is what `bin/test` sets, to move the
-# end-to-end server away from the port used during development so the two never
-# mix. Everything else uses the default.
+# The port the server answers on, chosen with the PORT variable. It stays on the
+# loopback interface for the reason above; changing the address is a change to the
+# security model, not a configuration value.
 bind "tcp://127.0.0.1:#{ENV.fetch("PORT", "9292")}"
 
 # One process is enough for a local server, and keeping it at one is also what
-# makes Ctrl+C in `bin/start` stop it right away. Threads answer the requests.
+# makes Ctrl+C stop it right away. Threads answer the requests.
 threads 1, 5
 
 # The size of the request body is NOT limited here: Puma has no setting for it.

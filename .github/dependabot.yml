@@ -1,0 +1,38 @@
+# frozen_string_literal: true
+
+version: 2
+updates:
+  # ----------------------------- Ruby gems -----------------------------------
+  - package-ecosystem: "bundler"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "ruby"
+      - "bundler"
+    commit-message:
+      prefix: "chore(deps): "
+    # Keeps the Bundler version consistent with the one locked in
+    # Gemfile.lock, helping to avoid future breaking changes.
+    ignore:
+      - dependency-name: "bundler"
+        ranges:
+          - ">= 2.5.0, < 4.0.0"
+
+  # ------------------------ GitHub Actions -----------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:30"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(deps): "

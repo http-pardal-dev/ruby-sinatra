@@ -1,0 +1,100 @@
+# frozen_string_literal: true
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  # The application, the Rake tasks and the database configuration all read
+  # `test` for the environment that points at `storage/test.sqlite3`
+  # (see config/environment.rb and data/database.yml).
+  APP_ENV: test
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test (Ruby ${{ matrix.ruby-version }} on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby-version: ["3.3", "3.4", "4.0"]
+        os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby ${{ matrix.ruby-version }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+          bundler-cache: true
+
+      - name: Install OpenSSL (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # SQLite needs OpenSSL for its native extension on Windows.
+          # ruby/setup-ruby bundles the MinGW toolchain used to build it.
+          $MSYS = $env:RUBYTAGS | Split-Path -Parent
+          $UCRT = Join-Path $MSYS "ucrt64"
+          $X86_64 = Join-Path $UCRT "mingw+x86_64"
+          $env:CPATH = "$($env:CPATH);$X86_64/include"
+          $env:LIBRARY_PATH = "$($env:LIBRARY_PATH);$X86_64/lib"
+          $env:PATH = "$($env:PATH);$X86_64/bin"
+        shell: powershell
+
+      - name: Run database migrations
+        run: bundle exec rake db:migrate
+
+      - name: Run the RSpec suite
+        run: bundle exec rake spec
+
+  # ---------------------------------------------------------------------------
+  # Lint
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint (RuboCop)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Run RuboCop
+        run: bundle exec rake lint
+
+  # ---------------------------------------------------------------------------
+  # Security
+  # ---------------------------------------------------------------------------
+  bundle-audit:
+    name: Audit (Bundler Audit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Run Bundler Audit
+        run: bundle exec bundle-audit check --update
+

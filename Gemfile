@@ -34,4 +34,7 @@ group :development, :test do
 
   # Code checker of the `lint` task (see Rakefile and .rubocop.yml).
   gem "rubocop", "~> 1.91", require: false
+
+  # Security: vulnerability scanner for Bundler dependency locks.
+  gem "bundler-audit", "~> 1.4", require: false
 end

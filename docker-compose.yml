@@ -1,0 +1,76 @@
+# Development and test environments in containers.
+#
+# The image (Dockerfile) carries the toolchain and the gems of Gemfile.lock;
+# the repository is always bind-mounted over /app, so what runs is the working
+# tree - the same files act copies into the CI containers.
+#
+#   docker compose build            # build the image (once, and after Gemfile.lock changes)
+#   docker compose up dev           # migrate + server on http://127.0.0.1:9292
+#   docker compose run --rm test    # migrate + the RSpec suite
+#   docker compose run --rm lint    # RuboCop (rake lint)
+#   docker compose run --rm audit   # bundler-audit (bundle-audit check --update)
+#
+# test, lint and audit declare a profile, so plain `docker compose up` starts
+# only the dev service; the one-shot services run with `docker compose run`.
+
+x-service: &service
+  build:
+    context: .
+    args:
+      # Keep in sync with .ruby-version (the version CI's lint and audit jobs
+      # use); the test jobs of CI use the matrix 3.3/3.4/4.0.
+      RUBY_VERSION: "3.3"
+  image: ruby-sinatra:dev
+  volumes:
+    - .:/app
+
+services:
+  # Server for local development. Migrations run before puma so a fresh
+  # container can boot (config/environment.rb stops on a database without
+  # tables). The port is published on the loopback interface of the host only:
+  # the API has no authentication, and 127.0.0.1 is the same guarantee the
+  # bind in config/puma.rb gives (see the comments there).
+  dev:
+    <<: *service
+    init: true
+    environment:
+      APP_ENV: development
+    command: >
+      sh -c "bundle exec rake db:migrate &&
+             exec bundle exec puma -C config/puma.rb -b tcp://0.0.0.0:9292"
+    ports:
+      - "127.0.0.1:9292:9292"
+
+  # The CI "test" job: migrations, then the suite, in APP_ENV=test against
+  # storage/test.sqlite3 (created on the host through the bind mount, like a
+  # local run, and ignored by git - see .gitignore).
+  #
+  # The suite is `rspec`, the command README documents. CI writes
+  # `bundle exec rake spec`, but no `spec` task is defined anywhere: rake
+  # finds the spec/ directory, treats it as an already-built file task and
+  # exits 0 without running a single example - a green job that tests nothing.
+  test:
+    <<: *service
+    profiles: [test]
+    environment:
+      APP_ENV: test
+    command: >
+      sh -c "bundle exec rake db:migrate &&
+             bundle exec rspec"
+
+  # RuboCop with the rules of .rubocop.yml. Known caveat: RuboCop's default
+  # EndOfLine style is :native, so inside a Linux container it expects LF,
+  # while a Windows checkout holds CRLF in the working tree (git keeps LF in
+  # the objects). Run `git add --renormalize .` after setting `* text=auto
+  # eol=lf` in .gitattributes, or expect Layout/EndOfLine offenses here.
+  lint:
+    <<: *service
+    profiles: [lint]
+    command: bundle exec rake lint
+
+  # The CI "bundle-audit" job: vulnerabilities of Gemfile.lock, against the
+  # advisory database (fetched over the network on every run).
+  audit:
+    <<: *service
+    profiles: [audit]
+    command: bundle exec bundle-audit check --update

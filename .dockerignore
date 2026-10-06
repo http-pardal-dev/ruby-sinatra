@@ -1,0 +1,27 @@
+# The image copies only Gemfile and Gemfile.lock (the source is bind-mounted
+# at runtime, see docker-compose.yml), so the build context only has to leave
+# out what must never enter an image, and what would only bloat the upload.
+
+# Version control and CI (never needed inside the image).
+.git
+.github
+
+# Secrets and machine-local state.
+.env
+.bundle
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+
+# Databases and gems generated on the host: they are for the host's Ruby, and
+# a Windows build of sqlite3 or bcrypt is useless inside a Linux container.
+storage/*
+!storage/.gitkeep
+*.sqlite3
+vendor
+
+# Scratch files of local act runs.
+act-*.log
+act-*.err
+act.pid

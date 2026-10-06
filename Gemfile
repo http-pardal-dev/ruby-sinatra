@@ -36,5 +36,6 @@ group :development, :test do
   gem "rubocop", "~> 1.91", require: false
 
   # Security: vulnerability scanner for Bundler dependency locks.
-  gem "bundler-audit", "~> 1.4", require: false
+  # Latest release on rubygems.org is 0.9.3 (there is no 1.x line).
+  gem "bundler-audit", "~> 0.9", require: false
 end

@@ -1,9 +1,10 @@
 # Ruby Sinatra HTTP API
 
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Ruby >= 3.2](https://img.shields.io/badge/Ruby-%3E%3D%203.2-red.svg)
-![Sinatra 4.2](https://img.shields.io/badge/Sinatra-4.2-black.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Ruby](https://img.shields.io/badge/Ruby-%3E%3D%203.2-red.svg)
+![Sinatra](https://img.shields.io/badge/Sinatra-4.2-black.svg)
 ![SQLite](https://img.shields.io/badge/SQLite-3-003b57.svg)
+![CI](https://github.com/http-pardal-dev/ruby-sinatra/actions/workflows/ci.yml/badge.svg)
 
 An HTTP server built with Ruby and Sinatra, providing a JSON API with three resources. Each resource focuses on a different part of HTTP.
 
@@ -62,3 +63,7 @@ An HTTP server built with Ruby and Sinatra, providing a JSON API with three reso
 `POST` `/payments/:id/cancel`     → `pending` → `cancelled`
 
 > Practice: states, actions, transitions, headers, and idempotency.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

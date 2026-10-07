@@ -2,7 +2,7 @@
 
 CRUD, route parameters, JSON, status codes, validation and persistence.
 
-Source: [`app/routes/users.rb`](../../app/routes/users.rb) · [`app/models/user.rb`](../../app/models/user.rb) · [`db/migrate/20261001120000_create_users.rb`](../../db/migrate/20261001120000_create_users.rb)
+Source: [`app/users/routes.rb`](../../app/users/routes.rb) · [`app/users/model.rb`](../../app/users/model.rb) · [`db/migrate/20261001120000_create_users.rb`](../../db/migrate/20261001120000_create_users.rb)
 
 ## Schema
 

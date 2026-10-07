@@ -54,7 +54,7 @@ Naming/VariableNumber:
 # keeps the `!` instead of reading as a predicate.
 Naming/PredicateMethod:
   Exclude:
-    - "app/models/payment.rb"
+    - "app/payments/model.rb"
 
 # A Gemfile has no frozen string literal comment, like every Gemfile.
 Style/FrozenStringLiteralComment:

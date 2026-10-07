@@ -2,7 +2,7 @@
 
 States, actions, transitions, headers and idempotency.
 
-Source: [`app/routes/payments.rb`](../../app/routes/payments.rb) · [`app/models/payment.rb`](../../app/models/payment.rb) · [`db/migrate/20261001120002_create_payments.rb`](../../db/migrate/20261001120002_create_payments.rb)
+Source: [`app/payments/routes.rb`](../../app/payments/routes.rb) · [`app/payments/model.rb`](../../app/payments/model.rb) · [`db/migrate/20261001120002_create_payments.rb`](../../db/migrate/20261001120002_create_payments.rb)
 
 ## Schema
 

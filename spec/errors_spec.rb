@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../spec_helper"
+require_relative "spec_helper"
 
 # Protocol-level behavior: unknown routes, unsupported methods, malformed
 # requests and unexpected failures. These specs pin down the HTTP contract

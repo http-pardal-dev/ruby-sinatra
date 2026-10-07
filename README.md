@@ -37,6 +37,46 @@ docker compose up dev                      # migrate + server
 docker compose run --rm test               # migrate + suite
 ```
 
+## Routes
+
+### Health
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/` | Health check — `{ service, status: "ok" }` |
+
+### Users — CRUD & Fundamentals
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/users` | Lists all users |
+| `GET` | `/users/:id` | Finds a user by id |
+| `POST` | `/users` | Creates a user → `201` + `Location: /users/:id` |
+| `PUT` | `/users/:id` | Replaces a user (requires `name`, `email`, `role`) |
+| `PATCH` | `/users/:id` | Partially updates a user |
+| `DELETE` | `/users/:id` | Removes a user → `204` |
+
+### Products — Queries
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `GET` | `/products` | Lists products — filters (`category`, `min_price`, `max_price`), sorting (`sort=name`/`price`, `-` = desc), pagination (`page`, `limit`) |
+| `GET` | `/products/:id` | Finds a product by id |
+| `POST` | `/products` | Creates a product → `201` + `Location: /products/:id` |
+| `PATCH` | `/products/:id` | Partially updates a product |
+
+### Payments — Lifecycle
+
+| Method | Path | What it does |
+| --- | --- | --- |
+| `POST` | `/payments` | Creates a `pending` payment → `201` + `Location: /payments/:id` |
+| `GET` | `/payments` | Lists payments — optional filter `?status=pending|paid|cancelled` |
+| `GET` | `/payments/:id` | Finds a payment by id |
+| `POST` | `/payments/:id/confirm` | `pending` → `paid` (`409` otherwise) |
+| `POST` | `/payments/:id/cancel` | `pending` → `cancelled` (`409` otherwise) |
+
+Details (params, bodies, status codes): see `docs/` and `contract/openapi.yml`.
+
 ## Documentation
 
 | Doc | Covers — read this, not the code |

@@ -1,4 +1,4 @@
-# ruby-sinatra — Sinatra HTTP server
+# Ruby Sinatra HTTP API
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Ruby >= 3.2](https://img.shields.io/badge/Ruby-%3E%3D%203.2-red.svg)
@@ -17,42 +17,48 @@ An HTTP server built with Ruby and Sinatra, providing a JSON API with three reso
 
 ---
 
-### Users
+### Users · [CRUD & Fundamentals](docs/resources/user-crud.md)
 
-**CRUD & Fundamentals**
+`GET`    `/users`       → List users
 
-`GET`    `/users`      → List users
-`GET`    `/users/:id`  → Find by ID
-`POST`   `/users`      → Create a user
-`PUT`    `/users/:id`  → Replace a user
-`PATCH`  `/users/:id`  → Change part of a user
-`DELETE` `/users/:id`  → Remove a user
+`GET`    `/users/:id`   → Find by ID
+
+`POST`   `/users`       → Create a user
+
+`PUT`    `/users/:id`   → Replace a user
+
+`PATCH`  `/users/:id`   → Change part of a user
+
+`DELETE` `/users/:id`   → Remove a user
 
 > Practice: JSON, status codes, validation, and CRUD operations.
 
 ---
 
-### Products
-
-**Queries**
+### Products · [Queries](docs/resources/product-queries.md)
 
 `GET`   `/products`      → List, filter, sort, and paginate
+
 `GET`   `/products/:id`  → Find by ID
+
 `POST`  `/products`      → Create a product
+
 `PATCH` `/products/:id`  → Change part of a product
 
 > Practice: filtering, sorting, pagination, and partial updates.
 
 ---
 
-### Payments
+### Payments · [Lifecycle](docs/resources/payment-lifecycle.md)
 
-**Lifecycle**
+`POST` `/payments`               → Create, always `pending`
 
-`POST` `/payments`             → Create, always `pending`
-`GET`  `/payments`             → List, filtered by state
-`GET`  `/payments/:id`         → Find by ID
-`POST` `/payments/:id/confirm` → `pending` → `paid`
-`POST` `/payments/:id/cancel`  → `pending` → `cancelled`
+`GET`  `/payments`               → List, filtered by state
+
+`GET`  `/payments/:id`            → Find by ID
+
+`POST` `/payments/:id/confirm`    → `pending` → `paid`
+
+`POST` `/payments/:id/cancel`     → `pending` → `cancelled`
 
 > Practice: states, actions, transitions, headers, and idempotency.

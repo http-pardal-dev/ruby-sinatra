@@ -41,24 +41,21 @@ jobs:
           ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
 
-      - name: Install OpenSSL (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          # SQLite needs OpenSSL for its native extension on Windows.
-          # ruby/setup-ruby bundles the MinGW toolchain used to build it.
-          $MSYS = $env:RUBYTAGS | Split-Path -Parent
-          $UCRT = Join-Path $MSYS "ucrt64"
-          $X86_64 = Join-Path $UCRT "mingw+x86_64"
-          $env:CPATH = "$($env:CPATH);$X86_64/include"
-          $env:LIBRARY_PATH = "$($env:LIBRARY_PATH);$X86_64/lib"
-          $env:PATH = "$($env:PATH);$X86_64/bin"
-        shell: powershell
+      # Windows needs no extra step here: ruby/setup-ruby already puts the MSYS2
+      # toolchain on PATH (it is what compiles the gems that have no precompiled
+      # Windows build, like bcrypt) and sqlite3 installs its precompiled
+      # x64-mingw-ucrt gem (see PLATFORMS in Gemfile.lock), so nothing is built
+      # from source against OpenSSL. Any `$env:` export would also only live for
+      # its own step unless written to `$env:GITHUB_ENV`.
 
       - name: Run database migrations
         run: bundle exec rake db:migrate
 
       - name: Run the RSpec suite
-        run: bundle exec rake spec
+        # `rake spec` would not work: no `spec` task exists, so rake resolves
+        # the spec/ directory as an already-built file task and exits 0 without
+        # running a single example. The suite is `rspec` (see Dockerfile).
+        run: bundle exec rspec
 
   # ---------------------------------------------------------------------------
   # Lint

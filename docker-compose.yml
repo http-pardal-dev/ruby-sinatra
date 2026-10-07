@@ -45,10 +45,10 @@ services:
   # storage/test.sqlite3 (created on the host through the bind mount, like a
   # local run, and ignored by git - see .gitignore).
   #
-  # The suite is `rspec`, the command README documents. CI writes
-  # `bundle exec rake spec`, but no `spec` task is defined anywhere: rake
-  # finds the spec/ directory, treats it as an already-built file task and
-  # exits 0 without running a single example - a green job that tests nothing.
+  # The suite is `rspec`, the command README documents and the command CI runs.
+  # There is no `spec` task anywhere: `bundle exec rake spec` only resolves the
+  # spec/ directory as an already-built file task and exits 0 without running a
+  # single example - a green job that tests nothing.
   test:
     <<: *service
     profiles: [test]

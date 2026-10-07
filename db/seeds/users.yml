@@ -1,0 +1,25 @@
+# Seeds for the Users resource (CRUD and fundamentals).
+#
+# Each entry creates one user. `email` is the identity: re-running the seeds
+# never creates a duplicate, it keeps the existing record.
+- name: Ada Lovelace
+  email: ada@example.com
+  password: secret123
+  password_confirmation: secret123
+  role: admin
+  birthdate: "1815-12-10"
+  active: true
+- name: Alan Turing
+  email: alan@example.com
+  password: secret123
+  password_confirmation: secret123
+  role: user
+  birthdate: "1912-06-23"
+  active: true
+- name: Grace Hopper
+  email: grace@example.com
+  password: secret123
+  password_confirmation: secret123
+  role: user
+  birthdate: "1906-12-09"
+  active: false

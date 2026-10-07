@@ -10,59 +10,43 @@ An HTTP server built with Ruby and Sinatra, providing a JSON API with three reso
 
 > **Note:** This API has no authentication. Every route is open and requires no login, token, or permissions. The server listens only on `127.0.0.1`. Do not expose it on `0.0.0.0` or a public address.
 
-## API
+## Getting started
 
-### Server
+Local (Ruby >= 3.2, see `.ruby-version`):
 
-`GET` `/` → Check that the server is up
+```sh
+bundle install
+cp .env.example .env                       # optional; development is the default
+bundle exec rake db:migrate                # create the SQLite database
+bundle exec puma -C config/puma.rb         # http://127.0.0.1:9292
+```
 
----
+Tests and lint:
 
-### Users · [CRUD & Fundamentals](docs/resources/user-crud.md)
+```sh
+APP_ENV=test bundle exec rake db:migrate   # once, prepares storage/test.sqlite3
+bundle exec rspec                          # the suite (not `rake spec`: it runs nothing)
+bundle exec rake lint                      # RuboCop
+```
 
-`GET`    `/users`       → List users
+Docker (same commands as the CI):
 
-`GET`    `/users/:id`   → Find by ID
+```sh
+docker compose build
+docker compose up dev                      # migrate + server
+docker compose run --rm test               # migrate + suite
+```
 
-`POST`   `/users`       → Create a user
+## Documentation
 
-`PUT`    `/users/:id`   → Replace a user
-
-`PATCH`  `/users/:id`   → Change part of a user
-
-`DELETE` `/users/:id`   → Remove a user
-
-> Practice: JSON, status codes, validation, and CRUD operations.
-
----
-
-### Products · [Queries](docs/resources/product-queries.md)
-
-`GET`   `/products`      → List, filter, sort, and paginate
-
-`GET`   `/products/:id`  → Find by ID
-
-`POST`  `/products`      → Create a product
-
-`PATCH` `/products/:id`  → Change part of a product
-
-> Practice: filtering, sorting, pagination, and partial updates.
-
----
-
-### Payments · [Lifecycle](docs/resources/payment-lifecycle.md)
-
-`POST` `/payments`               → Create, always `pending`
-
-`GET`  `/payments`               → List, filtered by state
-
-`GET`  `/payments/:id`            → Find by ID
-
-`POST` `/payments/:id/confirm`    → `pending` → `paid`
-
-`POST` `/payments/:id/cancel`     → `pending` → `cancelled`
-
-> Practice: states, actions, transitions, headers, and idempotency.
+| Doc | Covers — read this, not the code |
+| --- | --- |
+| [docs/architecture.md](docs/architecture.md) | Layout, boot sequence, request lifecycle |
+| [docs/errors.md](docs/errors.md) | Error shapes, status codes, 404/405/500 rules |
+| [Users — CRUD & Fundamentals](docs/resources/user-crud.md) | `GET/POST/PUT/PATCH/DELETE /users` — JSON, validation, CRUD |
+| [Products — Queries](docs/resources/product-queries.md) | `GET/POST/PATCH /products` — filters, sorting, pagination |
+| [Payments — Lifecycle](docs/resources/payment-lifecycle.md) | `POST/GET /payments` + `confirm`/`cancel` — states, idempotency |
+| [contract/openapi.yml](contract/openapi.yml) | Machine-readable contract for all routes |
 
 ## License
 

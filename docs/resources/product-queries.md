@@ -42,11 +42,11 @@ flowchart TD
     D --> E{min_price / max_price<br/>decimal?}
     E -- ok --> F["where price: min.. / ..max<br/>(inclusive)"]
     E -- invalid --> Z
-    F --> G{sort in allowlist?<br/>optional '-' prefix}
+    F --> G{"sort in allowlist?<br/>optional '-' prefix"}
     G -- ok --> H["order by column<br/>id always breaks ties"]
     G -- invalid --> Z
     H --> I{page / limit<br/>positive integers?}
-    I -- ok --> J[offset: (page-1) * limit<br/>limit: 1..100, default 10]
+    I -- ok --> J["offset: (page - 1) * limit<br/>limit: 1..100, default 10"]
     I -- invalid --> Z
     J --> K[["{ products: [...],<br/>pagination: { page, limit, total } } 200"]]
 ```
@@ -75,8 +75,8 @@ flowchart TD
 | `POST` | `/products` | `201` | `Location: /products/:id` |
 | `PATCH` | `/products/:id` | `200` | Only the sent fields change |
 
-There is **no `PUT` and no `DELETE`**: this resource practices queries and
-partial updates only, so those verbs answer `405` with an `Allow` header.
+Entity-specific code beyond the shared ones (defined in
+[errors.md](../errors.md)): none — every response here is shared.
 
 ## Examples
 

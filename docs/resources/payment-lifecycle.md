@@ -93,7 +93,7 @@ stays idempotent — repeating it leaves nothing to change.
 | `POST` | `/payments/:id/cancel` | `200` | `pending → cancelled`; no body, no `Content-Type` needed |
 
 Entity-specific code beyond the shared ones (defined in
-[`contract/openapi.yml`](../../contract/openapi.yml)): `409` when the payment
+[errors.md](../errors.md)): `409` when the payment
 is no longer `pending`.
 
 ## Examples

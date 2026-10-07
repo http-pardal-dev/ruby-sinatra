@@ -75,8 +75,8 @@ flowchart TD
     F -- ok --> G[200 / 201 / 204]
 ```
 
-The other responses (`400`, `404`, `405`, `413`) are shared by every resource
-and defined in [`contract/openapi.yml`](../../contract/openapi.yml).
+The shared responses (`400`, `404`, `405`, `413`) are defined once in
+[errors.md](../errors.md).
 
 ## Examples
 

@@ -17,8 +17,8 @@ require_relative "app/helpers/params"
 #   - errors (404 and 500) also return JSON.
 #
 # Database access uses the sinatra-activerecord gem (ActiveRecord).
-# Each resource owns one folder in app/ (app/users, app/products and
-# app/payments) with its routes (routes.rb) and its model (model.rb).
+# Each resource keeps its model in app/models (<resource>.rb) and its
+# routes in app/routes (<resource>_routes.rb): users, products and payments.
 class App < Sinatra::Base
   configure do
     set :environment, APP_ENV
@@ -55,13 +55,13 @@ class App < Sinatra::Base
   end
 end
 
-# Routes for each resource, one folder per resource in app/:
-#   - app/users/routes.rb    -> Users    (CRUD and fundamentals)
-#   - app/products/routes.rb -> Products (queries)
-#   - app/payments/routes.rb -> Payments (lifecycle)
-require_relative "app/users/routes"
-require_relative "app/products/routes"
-require_relative "app/payments/routes"
+# Routes for each resource, one file per resource in app/routes/:
+#   - app/routes/users_routes.rb    -> Users    (CRUD and fundamentals)
+#   - app/routes/products_routes.rb -> Products (queries)
+#   - app/routes/payments_routes.rb -> Payments (lifecycle)
+require_relative "app/routes/users_routes"
+require_relative "app/routes/products_routes"
+require_relative "app/routes/payments_routes"
 
 # The 405 answer (see lib/errors/errors.rb) matches the request path against the
 # route patterns of the application, so the table is filled now that every

@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-# RSpec infrastructure, grouped by resource. Each folder in spec/ holds the
-# two files of one resource, split by what the example exercises:
+# RSpec infrastructure, split the way the application is (see app/): the models
+# live in spec/models/ and the routes in spec/routes/, one file per resource,
+# named after it:
 #
-#   spec/<resource>/model_spec.rb   one model, on its own
-#   spec/<resource>/<routes>.rb     the routes of the resource, through Rack
-#                                  (crud_spec, queries_spec, lifecycle_spec)
+#   spec/models/<resource>.rb         one model, on its own
+#   spec/routes/<resource>_routes.rb  the routes of the resource, through Rack
 #
 # spec/errors_spec.rb is the exception: the protocol (404, 405, 400, 500)
 # belongs to no single resource, so it sits at the top of spec/.
@@ -43,9 +43,9 @@ RSpec.configure do |config|
 
   # The request specs go through Rack: Rack::Test sends every request to the
   # Sinatra application. The model specs do not, so they do not need the type.
-  # The routes of a resource are the files named after its focus (crud, queries
-  # and lifecycle), plus the protocol-level errors_spec.
-  config.define_derived_metadata(file_path: %r{spec/(?:.+/(?:crud|queries|lifecycle)|errors)_spec\.rb}) do |metadata|
+  # The request specs are the files in spec/routes/, plus the protocol-level
+  # errors_spec.
+  config.define_derived_metadata(file_path: %r{spec/(?:routes/.+|errors)_spec\.rb}) do |metadata|
     metadata[:type] = :request
   end
 

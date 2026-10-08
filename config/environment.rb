@@ -30,9 +30,9 @@ end
 APP_ENV = ENV["APP_ENV"].to_sym
 
 require_relative "../app"
-require_relative "../app/users/model"
-require_relative "../app/products/model"
-require_relative "../app/payments/model"
+require_relative "../app/models/user"
+require_relative "../app/models/product"
+require_relative "../app/models/payment"
 
 # Settings specific to the current environment.
 require_relative "environments/#{APP_ENV}"

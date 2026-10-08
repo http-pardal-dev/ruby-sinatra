@@ -2,7 +2,7 @@
 
 Query parameters, filters, sorting, pagination and partial update.
 
-Source: [`app/products/routes.rb`](../../app/products/routes.rb) · [`app/products/model.rb`](../../app/products/model.rb) · [`db/migrate/20261001120001_create_products.rb`](../../db/migrate/20261001120001_create_products.rb)
+Source: [`app/routes/products_routes.rb`](../../app/routes/products_routes.rb) · [`app/models/product.rb`](../../app/models/product.rb) · [`db/migrate/20261001120001_create_products.rb`](../../db/migrate/20261001120001_create_products.rb)
 
 ## Schema
 

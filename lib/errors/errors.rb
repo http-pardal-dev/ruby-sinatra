@@ -16,7 +16,7 @@ module Errors
   # route. Mustermann has no `match?`: `params` returns nil when the path does
   # not fit. The table is filled by app.rb after every route file has loaded
   # (see Errors.snapshot_routes!), because lib/errors/errors.rb loads before
-  # the route files (app/*/routes.rb) and the handler itself cannot reach the
+  # the route files (app/routes/*.rb) and the handler itself cannot reach the
   # class routes.
   #
   # It is a module attribute and not a constant because it is written after this
